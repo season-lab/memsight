@@ -107,7 +107,7 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         return addr, size, reg_name
 
 
-    def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True):
+    def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False):
         self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
 
         i_addr = addr
@@ -184,7 +184,7 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             # fix endness
             endness = self._endness if endness is None else endness
-            if endness == "Iend_LE":
+            if not ignore_endness and endness == "Iend_LE":
                 #self.log("\treversing data: " + str(data))
                 data = data.reversed
 
@@ -219,6 +219,13 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             if len(load_constraint) > 0:
                 self.state.add_constraints(*load_constraint)
 
+            # fix endness
+            endness = self._endness if endness is None else endness
+            if not ignore_endness and endness == "Iend_LE":
+                #self.log("\treversing data: " + str(data))
+                data = data.reversed
+
+            self.log("\treturning data: " + str(data))
             return data
 
         assert False
@@ -259,22 +266,19 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # convert data to BVV if concrete
         data = self._convert_to_ast(data, size if isinstance(size, (int, long)) else None)
 
-        # simplify
-        data = self.state.se.simplify(data)
-
-        # fix endness
-        endness = self._endness if endness is None else endness
-        if not ignore_endness and endness == "Iend_LE":
-            #self.log("\treversing data: " + str(data))
-            data = data.reversed
-
-        # simplify
-        # data = self.state.se.simplify(data)
-
         # addr is concrete and size is concrete
         if type(addr) in (int, long) and type(size) in (int, long):
 
             assert len(data) / 8 == size
+
+            # simplify
+            data = self.state.se.simplify(data)
+
+            # fix endness
+            endness = self._endness if endness is None else endness
+            if not ignore_endness and endness == "Iend_LE":
+                #self.log("\treversing data: " + str(data))
+                data = data.reversed
 
             offset = 0
             while offset < size:
@@ -301,13 +305,36 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             for a in concrete_addresses:
 
                 # add condition to our data
-                data_c = self.state.se.If(a == addr, data, self.load(a, size))
+                data_c = self.state.se.If(a == addr, data, self.load(a, size, ignore_endness=True))
+
+                # simplify
+                data_c = self.state.se.simplify(data_c)
+
+                # fix endness
+                endness = self._endness if endness is None else endness
+                if not ignore_endness and endness == "Iend_LE":
+                    #self.log("\treversing data: " + str(data))
+                    data_c = data_c.reversed
 
                 offset = 0
                 while offset < size:
-                    #self.log("\tstoring at " + str(hex(a + offset)) + ": " + str(data_c))
+                    self.log("\tstoring at " + str(hex(a + offset)) + ": " + str(data_c))
                     self._memory[a + offset] = MemoryPointer(data_c, addr, offset, size)
                     offset += 1
+
+            try:
+                constraints = self.state.se.Or(*[ addr == a for a in concrete_addresses ])
+                if (constraints.symbolic or  # if the constraint is symbolic
+                        constraints.is_false()):  # if it makes the state go unsat
+
+                    self.log("\tAdding constraints...");
+                    self.state.add_constraints(constraints)
+                else:
+                    self.log("\tNot adding constraints: " + str(constraints));
+
+            except Exception as e:
+                self.log("\tERROR: " + str(e))
+                sys.exit(1)
 
             return
 
@@ -376,6 +403,9 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             # constant
             elif not self.state.se.symbolic(addr):
                 return [ self.state.se.any_int(addr) ]
+
+            max_addr = self.state.se.max_int(addr)
+            min_addr = self.state.se.min_int(addr)
 
             # symbolic
             N = 2048
