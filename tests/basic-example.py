@@ -16,6 +16,5 @@ def do_start(state):
 def do_end(state, params):
 	print state.se.any_int(params['esi'])
 	print state.se.any_int(params['edi'])
-	print params['esi']
-	print params['edi']
+	print "Constraints:"
 	print state.se.constraints
