@@ -38,7 +38,6 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 kind=None, 
                 arch=None, 
                 endness=None, 
-                paged_memory=None, 
                 check_permissions=None, 
                 memory={}):
         simuvex.plugins.plugin.SimStatePlugin.__init__(self)
@@ -49,21 +48,14 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._arch = arch
         self._endness = "Iend_BE" if endness is None else endness
 
-        self._paged_memory = paged_memory
-        if self._paged_memory is None:
-            self._paged_memory = simuvex.storage.SimPagedMemory(
-                                        memory_backer=memory_backer,
-                                        permissions_backer=permissions_backer,
-                                        check_permissions=check_permissions) 
-
         self._memory = memory
         self._maximum_symbolic_size = 8 * 1024
         self._maximum_concrete_size = 0x1000000
 
-        self.log("initializing memory: " + str(self))
+        self.log("initializing memory...")
 
     def set_state(self, state):
-        self.log("setting current state: " + str(state))
+        self.log("setting current state...")
         self.state = state    
 
     def memory_op(self, addr, size, data=None):
@@ -135,7 +127,6 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             offset = 0
             missing = 0
-            list_objects = []
             while offset < size:
 
                 mo_addr = addresses[index] if index < len(addresses) else None
@@ -160,13 +151,10 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     #self.log("\tmissing bytes of length " + str(missing))
 
                     #self.log("data before: " + str(data))
-                    obj = self.get_missing_bytes(data, missing, reg_name, addr + offset)
-                    list_objects.append(obj)
+                    data = self.concat_missing_bytes(data, missing, reg_name, addr + offset)
                     #self.log("data after: " + str(data))
 
                     offset += missing
-                    self.log("missing: " + str(missing))
-                    self.log("offset: " + str(offset))
                     continue
 
                 # we have an obj at addr
@@ -182,19 +170,14 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     else:
                         break
 
-                obj_desc, length, used = self.get_obj_bytes_description(mo.obj, mo.offset, length)
+                obj, length, used = self.get_obj_bytes(mo.obj, mo.offset, length)
                 
                 #self.log("\tappending byte: " + str(obj))
-                #data = obj if data is None else state.se.Concat(data, obj)
+                data = obj if data is None else state.se.Concat(data, obj)
                 #self.log("\tappending result: " + str(data))
-
-                list_objects.append(obj_desc)
 
                 offset += length
                 index += used
-                self.log("offset: " + str(offset))
-
-            data = self.merge_objects(list_objects)
 
             # simplify
             # data = self.state.se.simplify(data)
@@ -202,7 +185,7 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             # fix endness
             endness = self._endness if endness is None else endness
             if endness == "Iend_LE":
-                self.log("\treversing data: " + str(data))
+                #self.log("\treversing data: " + str(data))
                 data = data.reversed
 
             # simplify
@@ -240,26 +223,6 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         assert False
 
-    def merge_objects(self, list):
-
-        """
-        prev = None
-        for k in range(len(list)):
-            o = list[k]
-            if prev is not None o[0] == prev and prev[1] is not None and o[1] is not None:
-                pass
-            prev = o
-        """
-
-        data = None
-        for o in list:
-            obj = o[0]
-            if o[1] is not None:
-                obj = obj[o[1]:o[2]]
-
-            data = obj if data is None else state.se.Concat(data, obj)
-
-        return data
 
     def get_missing_bytes(self, data, missing, reg_name, addr):
         name = "mem_" + str(addr) if self._id == 'mem' else "reg_" + str(reg_name) 
@@ -267,12 +230,12 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 
         # fix endness
         if self.category == 'reg' and self.state.arch.register_endness == 'Iend_LE':
-            self.log("reversing")
+            #self.log("reversing")
             obj = obj.reversed
 
         # fix endness
         if self.category != 'reg' and self.state.arch.memory_endness == 'Iend_LE':
-            self.log("reversing")
+            #self.log("reversing")
             obj = obj.reversed
 
         self.store(addr, obj, missing, ignore_endness=True)
@@ -302,7 +265,7 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # fix endness
         endness = self._endness if endness is None else endness
         if not ignore_endness and endness == "Iend_LE":
-            self.log("\treversing data: " + str(data))
+            #self.log("\treversing data: " + str(data))
             data = data.reversed
 
         # simplify
@@ -315,7 +278,7 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             offset = 0
             while offset < size:
-                self.log("\t storing at " + str(hex(addr + offset)) + ": " + str(data))
+                #self.log("\tstoring at " + str(hex(addr + offset)) + ": " + str(data))
                 self._memory[addr + offset] = MemoryPointer(data, addr, offset, size)
                 offset += 1
 
@@ -342,7 +305,7 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 offset = 0
                 while offset < size:
-                    self.log("\t storing at " + str(hex(a + offset)) + ": " + str(data_c))
+                    #self.log("\tstoring at " + str(hex(a + offset)) + ": " + str(data_c))
                     self._memory[a + offset] = MemoryPointer(data_c, addr, offset, size)
                     offset += 1
 
@@ -350,29 +313,19 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         assert False   
 
-    def get_obj_bytes_description(self, obj, offset, size):
+
+    def get_obj_bytes(self, obj, offset, size):
 
         # full obj is needed
         if offset == 0 and size * 8 == len(obj):
-            return (obj, None, None), size, size
+            return obj, size, size
 
         size = min(size, (len(obj) / 8) - offset)
 
         # slice the object
         left = len(obj) - (offset * 8) - 1
         right = left - (size * 8) + 1
-        return (obj, left, right), size, size
-
-    def get_obj_bytes(self, obj, offset, size):
-
-        # full obj is needed
-        if offset == 0 and size * 8 == len(obj):
-            return obj
-
-        # slide the object
-        left = len(obj) - (offset * 8) - 1
-        right = left - (size * 8) + 1
-        return obj[left:right]
+        return obj[left:right], size, size
 
     def dump_memory(self):
         for k in sorted(self._memory.keys()):
@@ -491,7 +444,6 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 kind=self._id, 
                                 arch=self._arch, 
                                 endness=self._endness, 
-                                paged_memory=self._paged_memory, 
                                 check_permissions=None, 
                                 memory=self._memory.copy())
 
@@ -502,11 +454,29 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def id(self):
         return self._id
 
+
     @property
     def mem(self):
-        self.log("getting paged memory")
+
+        # In angr, this returns a reference to the (internal) paged memory
+        # We do not have (yet) a paged memory. We instead return self
+        # that exposes a _preapproved_stack attribute
+        # (similarly as done by a paged memory)
+
+        self.log("getting reference to paged memory")
         #traceback.print_stack()
-        return self._paged_memory
+        return self
+
+
+    @property
+    def _preapproved_stack(self):
+        pass
+
+
+    @_preapproved_stack.setter
+    def _preapproved_stack(self, value):
+        self.log("Boundaries on stack have been set by the caller. Ignored.")
+        pass
 
     def log(self, msg):
         l.debug("[" + self._id + "] " + msg)

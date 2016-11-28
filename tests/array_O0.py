@@ -9,7 +9,13 @@ def avoid():
 	return [0x400576, 0x400577]
 
 def do_start(state):
-	return None
+	params = {}
+	params['esi'] = state.regs.esi
+	params['edi'] = state.regs.edi
+	return params
 
 def do_end(state, params):
-	pass
+	print "EDI: " + str(state.se.any_int(params['edi']))
+	print "ESI: " + str(state.se.any_int(params['esi']))
+	print "Constraints:"
+	print state.se.constraints
