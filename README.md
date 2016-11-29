@@ -11,7 +11,7 @@ Symbolic execution can be started with:
 
     python run.py <path-to-binary>
     
-For each binary, a configuration script `<path-to-binary>.py` must exist. This script should define few python functions:
+For each binary, a configuration script `<path-to-binary>.py` must exist. This script must define few python functions:
 
     def start():
       return <start_address>
