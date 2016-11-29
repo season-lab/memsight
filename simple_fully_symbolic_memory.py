@@ -8,6 +8,7 @@ import os
 import pyvex
 import traceback
 import bisect
+import cffi
 
 l = logging.getLogger('fullySymbolicMemory')
 l.setLevel(logging.DEBUG)
@@ -34,7 +35,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 arch=None, 
                 endness=None, 
                 check_permissions=None, 
-                memory={}):
+                memory={},
+                initialized=False):
         simuvex.plugins.plugin.SimStatePlugin.__init__(self)
 
         self._memory_backer = memory_backer
@@ -42,16 +44,39 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._id = kind
         self._arch = arch
         self._endness = "Iend_BE" if endness is None else endness
-
         self._memory = memory
+
+        self._initialized = initialized
+
+        # some threshold
         self._maximum_symbolic_size = 8 * 1024
         self._maximum_concrete_size = 0x1000000
 
-        self.log("initializing memory...")
+        self.log("a symbolic memory has been created")
+
+    def _init_memory(self):
+
+        if self._initialized:
+            return
+
+        # init memory
+        if self._memory_backer is not None:
+
+            _ffi = cffi.FFI()
+
+            for addr, backer in self._memory_backer.cbackers:
+
+                data = _ffi.buffer(backer)[:]
+                obj = claripy.BVV(data)
+                self.store(addr, obj, len(obj) / 8, internal=True)
+                self.log("Initialized memory at " + hex(addr) + " with " + str(len(obj) / 8) + " bytes")
+
+        self._initialized = True
 
     def set_state(self, state):
         self.log("setting current state...")
         self.state = state    
+        self._init_memory()
 
     def memory_op(self, addr, size, data=None):
 
@@ -247,8 +272,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         obj = self.get_missing_bytes(data, missing, reg_name, addr)[0]
         return obj if data is None else self.state.se.Concat(data, obj)
 
-    def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False):
-        self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
+    def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False, internal=False):
+        
+        if not internal:
+            self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
 
         i_addr = addr
         i_size = size
@@ -470,7 +497,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 arch=self._arch, 
                                 endness=self._endness, 
                                 check_permissions=None, 
-                                memory=self._memory.copy())
+                                memory=self._memory.copy(),
+                                initialized=self._initialized)
 
         return s
 
