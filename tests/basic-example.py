@@ -14,7 +14,7 @@ def do_start(state):
 	return params
 
 def do_end(state, params):
-	print state.se.any_int(params['esi'])
-	print state.se.any_int(params['edi'])
+	print "EDI: " + str(state.se.any_n_int(params['edi'], 5))
+	print "ESI: " + str(state.se.any_n_int(params['esi'], 5))
 	print "Constraints:"
 	print state.se.constraints

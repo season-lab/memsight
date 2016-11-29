@@ -146,5 +146,4 @@ class Executor(object):
         state = found[0].state
         self._print_constraints(state.se.constraints, None)
         self.config.do_end(state, data)
-        print found[0].history._parent.state
         #pdb.set_trace()
