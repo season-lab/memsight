@@ -41,8 +41,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
 
     def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False):
-        self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
         data = self._angr_memory.load(addr, size, condition, fallback, add_constraints, action, endness, inspect)
+        self.log("Loading at " + str(addr) + " " + str(size) + " bytes. Data: " + str(data))
         return data
 
 

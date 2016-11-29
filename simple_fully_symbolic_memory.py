@@ -1,14 +1,11 @@
-import angr, logging
-from itertools import product
-import struct
+import angr 
+import logging
 import claripy
-import resource
 import pdb
 import simuvex
 import sys
 import os
 import pyvex
-from bitstring import Bits
 import traceback
 import bisect
 
