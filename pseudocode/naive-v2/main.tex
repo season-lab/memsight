@@ -32,7 +32,8 @@
   	\State Immutable objects:
   	\State $~~M~~~~~~~~~~~~~~~~~~~\,:= \{(e,v)\}$ 
   	\State $~~~e~~~~~~~~~~~~~~~~~~~\,~:=$ an expression over symbols and concrete values
-  	\State $~~~v~~~~~~~~~~~~~~~~~~~~\,:=$ an expression over symbols and concrete values
+  	\State $~~~v~~~~~~~~~~~~~~~~~~~~\,:=$ a 1-byte expression over symbols and concrete values
+  	\State $~~~V~~~~~~~~~~~~~~~~~~~\,:=$ ordered set of $v$
   	\State $~~~\pi~~~~~~~~~~~~~~~~~~~~\,:=$ set of assumptions
   	\State $~~~equiv(e, \widetilde{e}, \pi)~~~~\,:= (e \not = \widetilde{e} \wedge \pi) == UNSAT$ 
   	\State $~~~disjoint(e, \widetilde{e}, \pi)~:=  (e = \widetilde{e} \wedge \pi) == UNSAT$ 
@@ -54,7 +55,7 @@
   \bigskip
 
   \begin{algorithmic}[1]
-	\Function{\_store}{$e$, $v$}:
+	\Function{\_store}{$e$, $V$}:
 		\State $M'  \leftarrow M$
 		\For {$(\widetilde{e}, \widetilde{v}) \in M$}
 			\If {$disjoint(\widetilde{e}, e, \pi)$}
