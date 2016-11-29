@@ -509,3 +509,7 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     def log(self, msg):
         l.debug("[" + self._id + "] " + msg)
+
+    def verbose(self, v):
+        if not v:
+            l.setLevel(logging.INFO)

@@ -67,6 +67,39 @@ class Executor(object):
 
             print       
 
+    def run(self, mem_memory = None, reg_memory = None):
+
+        plugins = {}
+        if mem_memory is not None:
+            plugins['memory'] = mem_memory
+            mem_memory.verbose(False)
+        if reg_memory is not None:
+            plugins['registers'] = reg_memory
+            reg_memory.verbose(False)
+
+        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, plugins=plugins)
+
+        data = self.config.do_start(state)
+
+        pg = self.project.factory.path_group(state, veritesting=False)
+
+        while len(pg.active) > 0:
+            print pg
+
+            # step 1 basic block for each active path
+            # if veritesting is on: this will step more than one 1 BB!
+            pg.explore(avoid=self.avoid, find=self.end, n=1)
+
+            # Bazinga!
+            if len(pg.found) > 0:
+                print "Reached the target"
+                print pg
+                state = pg.found[0].state
+                self._print_constraints(state.se.constraints, None)
+                self.config.do_end(state, data)
+                break
+
+
     def explore(self, mem_memory = None, reg_memory = None):
 
         plugins = {}

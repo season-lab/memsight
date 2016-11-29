@@ -10,4 +10,4 @@ if __name__ == '__main__':
     mem_memory = simple_fully_symbolic_memory.FullSymbolicMemory(angr_project.loader.memory, None, 'mem', None, ) # endness=proj.arch.memory_endness
     reg_memory = simple_fully_symbolic_memory.FullSymbolicMemory(None, None, 'reg', angr_project.arch, endness=angr_project.arch.register_endness)
 
-    explorer.run(mem_memory = mem_memory, reg_memory = reg_memory)
+    explorer.explore(mem_memory = mem_memory, reg_memory = reg_memory)
