@@ -41,7 +41,7 @@
   \end{algorithmic}
   \bigskip
   \begin{algorithmic}[1]
-	\Function{\_store}{$e$, $v$}:
+	\Function{store}{$e$, $v$}:
 		\State $M'  \leftarrow M$
 		\For {$(\widetilde{e}, \widetilde{v}) \in M$}
 			\If {$disjoint(\widetilde{e}, e, \pi)$}
@@ -59,25 +59,9 @@
 	    \State $M  \leftarrow M'$
 	\EndFunction
   \end{algorithmic}
-  
   \bigskip
-
   \begin{algorithmic}[1]
-	\Function{load}{$e$, $size$}:
-		\State $v = \bot$ 
-		\For {$(\widetilde{e}, \widetilde{v}) \in M$} 
-			\If {$intersect(\widetilde{e}, e, \pi)$}
-				\State $v = ite(\widetilde{e} = e \wedge \pi, \widetilde{v}, v)$
-			\EndIf
-		\EndFor
-		\State \Return $v$
-	\EndFunction
-  \end{algorithmic}
-
-  \bigskip
-
-  \begin{algorithmic}[1]
-	\Function{\_load}{$e$}:
+	\Function{load}{$e$}:
 		\State $v = \bot$ 
 		\For {$(\widetilde{e}, \widetilde{v}) \in M$} 
 			\If {$intersect(\widetilde{e}, e, \pi)$}
@@ -88,7 +72,24 @@
 	\EndFunction
   \end{algorithmic}
   \bigskip
-  
+  \begin{algorithmic}[1]
+	\Function{branch}{$e$}:
+		\State $used = false$
+		\If {$(e \wedge \pi)$}
+			\State $\pi' = e \wedge \pi$
+			\State $used = true$
+		\EndIf
+		\If {$(\neg e \wedge \pi)$}
+			\State $\pi'' = \neg e \wedge \pi$
+			\If {$used$}
+				\State fork execution using $(\pi'', M)$
+			\Else
+				\State $\pi' = \pi''$
+			\EndIf
+		\EndIf
+		\State $\pi = \pi'$
+	\EndFunction
+  \end{algorithmic}
 \end{algorithm}
 
 
