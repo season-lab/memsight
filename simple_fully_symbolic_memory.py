@@ -29,7 +29,7 @@ class MemoryPointer(object):
     def __repr__(self):
         return "(" + str(self.addr) + ", " + str(self.offset) + ", " + str(self.obj) + ", " + str(self.size) + ")"
 
-class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
+class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     def __init__(self, memory_backer=None, 
                 permissions_backer=None, 
@@ -467,7 +467,7 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     def copy(self):
         self.log("Copying memory")
-        s = FullSymbolicMemory(memory_backer=self._memory_backer, 
+        s = SymbolicMemory(memory_backer=self._memory_backer, 
                                 permissions_backer=self._permissions_backer, 
                                 kind=self._id, 
                                 arch=self._arch, 
