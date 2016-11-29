@@ -1,4 +1,4 @@
-Files:
+## Overview
 - `explore.py`: main script, line-by-line exploration
 - `run.py`: main script, non line-by-line exploration
 - `executor.py`: a line-by-line executor
@@ -9,7 +9,7 @@ Files:
 - `utils.py`: other useful stuff
 - `tests/`: testing binaries
 
-
+## How to run
 Line-by-line symbolic execution can be started with:
 
     python explore.py <path-to-binary>
@@ -26,7 +26,7 @@ Accepted values:
 - `0`: `simple_fully_symbolic_memory.py` (default)
 - `1`: `angr_symbolic_memory.py`
     
-    
+## Binary configuration
 For each binary, a configuration script `<path-to-binary>.py` must exist. This script must define few python functions:
 
     def start():
