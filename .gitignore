@@ -1,1 +1,7 @@
 *.pyc
+*.aux
+*.pdf
+*.fls
+*.log
+*.synctex.gz
+*.fdb_latexmk
