@@ -3,7 +3,7 @@ Files:
 - `executor.py`: a line-by-line executor
 - `ececutor_config.py`: parser for executor config
 - `simple_fully_symbolic_memory.py`: a angr-like implementation of a fully symbolic memory
-- `utils.py`: stuff
+- `utils.py`: other useful stuff
 - `tests/`: testing binaries
 
 
