@@ -9,6 +9,7 @@ import pyvex
 import traceback
 import bisect
 import cffi
+import utils
 
 l = logging.getLogger('fullySymbolicMemory')
 l.setLevel(logging.DEBUG)
@@ -84,12 +85,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         if self._id == 'reg': 
 
             if type(addr) in (int, long):
-                reg_name = self._reverse_addr_reg(addr)
+                reg_name = utils.reverse_addr_reg(self, addr)
                 self.log("\t" + str(addr) + " => " + str(reg_name))
 
             if isinstance(addr, basestring):
                 reg_name = addr
-                addr, size_reg = self._resolve_location_name(addr)
+                addr, size_reg = utils.resolve_location_name(self, addr)
                 self.log("\t" + str(addr) + " => " + str(reg_name))
 
                 # a load from a register, derive size from reg size
@@ -190,7 +191,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     else:
                         break
 
-                obj, length, used = self.get_obj_bytes(mo.obj, mo.offset, length)
+                obj, length, used = utils.get_obj_bytes(mo.obj, mo.offset, length)
                 
                 #self.log("\tappending byte: " + str(obj))
                 data = obj if data is None else self.state.se.Concat(data, obj)
@@ -253,7 +254,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     def get_missing_bytes(self, data, missing, reg_name, addr):
         name = "mem_" + str(addr) if self._id == 'mem' else "reg_" + str(reg_name) 
-        obj = self._get_unconstrained_bytes(name, missing * 8)
+        obj = utils.get_unconstrained_bytes(self.state, name, missing * 8)
                 
         # fix endness
         if self.category == 'reg' and self.state.arch.register_endness == 'Iend_LE':
@@ -286,7 +287,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         addr, size, reg_name = self.memory_op(addr, size, data)
 
         # convert data to BVV if concrete
-        data = self._convert_to_ast(data, size if isinstance(size, (int, long)) else None)
+        data = utils.convert_to_ast(self.state, data, size if isinstance(size, (int, long)) else None)
 
         # addr is concrete and size is concrete
         if type(addr) in (int, long) and type(size) in (int, long):
@@ -363,57 +364,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         assert False   
 
 
-    def get_obj_bytes(self, obj, offset, size):
-
-        # full obj is needed
-        if offset == 0 and size * 8 == len(obj):
-            return obj, size, size
-
-        size = min(size, (len(obj) / 8) - offset)
-
-        # slice the object
-        left = len(obj) - (offset * 8) - 1
-        right = left - (size * 8) + 1
-        return obj[left:right], size, size
-
     def dump_memory(self):
         for k in sorted(self._memory.keys()):
             print "[" + str(k) + "]: " + str(self._memory[k]) 
 
-    def _convert_to_ast(self, data_e, size_e=None):
-        """
-        Make an AST out of concrete @data_e
-        """
-        if type(data_e) is str:
-            # Convert the string into a BVV, *regardless of endness*
-            bits = len(data_e) * 8
-            data_e = self.state.se.BVV(data_e, bits)
-        elif type(data_e) in (int, long):
-            data_e = self.state.se.BVV(data_e, size_e*8 if size_e is not None
-                                       else self.state.arch.bits)
-        else:
-            data_e = data_e.to_bv()
-
-        return data_e
-
-
-    def _resolve_location_name(self, name):
-
-        stn_map = { 'st%d' % n: n for n in xrange(8) }
-        tag_map = { 'tag%d' % n: n for n in xrange(8) }
-
-        if self.category == 'reg':
-            if self.state.arch.name in ('X86', 'AMD64'):
-                if name in stn_map:
-                    return (((stn_map[name] + self.load('ftop')) & 7) << 3) + self.state.arch.registers['fpu_regs'][0], 8
-                elif name in tag_map:
-                    return ((tag_map[name] + self.load('ftop')) & 7) + self.state.arch.registers['fpu_tags'][0], 1
-
-            return self.state.arch.registers[name]
-        elif name[0] == '*':
-            return self.state.registers.load(name[1:]), None
-        else:
-            raise simuvex.s_errors.SimMemoryError("Trying to address memory with a register name.")
 
     def _concretize_addr(self, addr):
 
@@ -448,20 +402,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         return []
 
 
-    def _reverse_addr_reg(self, addr):
-
-        assert self.category == 'reg'
-        assert type(addr) in (int, long)
-
-        for name, offset_size in self.state.arch.registers.iteritems():
-            offset = offset_size[0]
-            size = offset_size[1]
-            if addr in range(offset, offset + size):
-                return name
-
-        assert False
-
-
     def _resolve_size_range(self, size):
 
         if not self.state.se.symbolic(size):
@@ -480,8 +420,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         return min_size, min(max_size, self._maximum_symbolic_size)
 
-    def _get_unconstrained_bytes(self, name, bits, source=None):
-        return self.state.se.Unconstrained(name, bits)
 
     @property
     def category(self):
