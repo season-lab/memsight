@@ -95,7 +95,6 @@ class Executor(object):
                 print "Reached the target"
                 print pg
                 state = pg.found[0].state
-                self._print_constraints(state.se.constraints, None)
                 self.config.do_end(state, data)
                 break
 
@@ -177,6 +176,7 @@ class Executor(object):
 
         print "One path has reached target instruction: " + str(hex(found[0].state.ip.args[0]))
         state = found[0].state
-        self._print_constraints(state.se.constraints, None)
         self.config.do_end(state, data)
+        print "Constraints:"
+        self._print_constraints(state.se.constraints, None)
         #pdb.set_trace()

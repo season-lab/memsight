@@ -171,7 +171,7 @@ class FullSymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 obj, length, used = self.get_obj_bytes(mo.obj, mo.offset, length)
                 
                 #self.log("\tappending byte: " + str(obj))
-                data = obj if data is None else state.se.Concat(data, obj)
+                data = obj if data is None else self.state.se.Concat(data, obj)
                 #self.log("\tappending result: " + str(data))
 
                 offset += length
