@@ -1,4 +1,11 @@
-`run.py` is both an implementation of a fully symbolic memory and a line-by-line executor. `tests/` contains few binaries.
+Files:
+- `run.py`: main
+- `executor.py`: a line-by-line executor
+- `ececutor_config.py`: parser for executor config
+- `simple_fully_symbolic_memory.py`: a angr-like implementation of a fully symbolic memory
+- `utils.py`: stuff
+- `tests/`: testing binaries
+
 
 Symbolic execution can be started with:
 
