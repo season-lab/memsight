@@ -11,8 +11,10 @@ if __name__ == '__main__':
     angr_project = explorer.project
 
     if t == 0:
-        mem_memory, reg_memory = factory.get_simple_full_symbolic_memory(angr_project)
+        mem_memory, reg_memory = factory.get_simple_fully_symbolic_memory(angr_project)
     elif t == 1:
         mem_memory, reg_memory = factory.get_angr_symbolic_memory(angr_project)
+    elif t == 2:
+        mem_memory, reg_memory = factory.get_naive_fully_symbolic_memory(angr_project)
 
     explorer.explore(mem_memory = mem_memory, reg_memory = reg_memory)
