@@ -3,9 +3,10 @@
 - `run.py`: main script, non line-by-line exploration
 - `executor.py`: a line-by-line executor
 - `factory.py`: some functions to build different kinds of symbolic memories
-- `ececutor_config.py`: parser for executor config
+- `executor_config.py`: parser for executor config
 - `simple_fully_symbolic_memory.py`: an angr-like implementation of a fully symbolic memory
 - `angr_symbolic_memory.py`: a wrapper around angr symbolic memory
+- `naive_fully_symbolic_memory.py`: a naive implementation of a fully symbolic memory (see: pseudocode/naive-v2)
 - `utils.py`: other useful stuff
 - `tests/`: testing binaries
 
@@ -25,6 +26,7 @@ The implementation of the symbolic memory can be selected by adding a parameter 
 Accepted values:
 - `0`: `simple_fully_symbolic_memory.py` (default)
 - `1`: `angr_symbolic_memory.py`
+- `2`: `naive_fully_symbolic_memory.py`
     
 ## Binary configuration
 For each binary, a configuration script `<path-to-binary>.py` must exist. This script must define few python functions:
