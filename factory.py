@@ -3,7 +3,7 @@ import simple_fully_symbolic_memory
 import naive_fully_symbolic_memory
 import angr_symbolic_memory
 
-def get_angr_memory(angr_project):
+def get_angr_symbolic_memory(angr_project):
     mem_memory = angr_symbolic_memory.SymbolicMemory(angr_project.loader.memory, utils.get_permission_backer(angr_project), 'mem')
     reg_memory = angr_symbolic_memory.SymbolicMemory(None, None, 'reg', angr_project.arch, endness=angr_project.arch.register_endness)
     return mem_memory, reg_memory

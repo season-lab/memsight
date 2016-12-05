@@ -160,6 +160,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             else:
                 min_addr = self.state.se.min_int(addr)
                 max_addr = self.state.se.max_int(addr)
+                if min_addr == max_addr:
+                    addr = min_addr
 
             data = None
             for k in range(size):
@@ -251,6 +253,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             else:
                 min_addr = self.state.se.min_int(addr)
                 max_addr = self.state.se.max_int(addr)
+                if min_addr == max_addr:
+                    addr = min_addr
 
             to_add = []
             to_replace = []
