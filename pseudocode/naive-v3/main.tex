@@ -79,11 +79,11 @@
 				\If {$constant$}
 					\State ${M_s}' \leftarrow {M_s}' - (\widetilde{e}, v)$
 				\Else
-	    			\State ${M_s}' \leftarrow M'\vert_{\widetilde{e} \mapsto v}$
+	    			\State ${M_s}' \leftarrow {M_s}'\vert_{\widetilde{e} \mapsto v}$
 	    		\EndIf
 	    		\State $flag = true$
 	    	\Else
-	    		\State ${M_s}' \leftarrow {M_s}'\vert_{\widetilde{e} \mapsto ite(\widetilde{e} = e \wedge \pi, v, \widetilde{v})}$
+	    		\State ${M_s}' \leftarrow {M_s}'\vert_{\widetilde{e} \mapsto ite(\widetilde{e} = e, v, \widetilde{v})}$
 	    	\EndIf
 	    \EndFor
 
@@ -101,10 +101,10 @@
 \begin{algorithm}
   \begin{algorithmic}[1]
 	\Function{load}{$e$, $size$}:
-		\State $V = []$ 
+		\State $V = \left\langle \right\rangle$ 
 		\For {$k = 0~\text{to}~size - 1$} 
 			\State $v_k = $ \Call{\_LOAD}{$e + k$}
-			\State $V = V \cup v_k$
+			\State $V = V \cdot v_k$
 		\EndFor
 		\State \Return $V$
 	\EndFunction
@@ -131,9 +131,9 @@
 			\EndFor
 		\EndIf
 
-		\For {$(\widetilde{e}, \widetilde{v}) \in M$} 
+		\For {$(\widetilde{e}, \widetilde{v}) \in M_s$} 
 			\If {$intersect(\widetilde{e}, e, \pi)$}
-				\State $v = ite(\widetilde{e} = e \wedge \pi, \widetilde{v}, v)$
+				\State $v = ite(\widetilde{e} = e, \widetilde{v}, v)$
 			\EndIf
 		\EndFor
 		\State \Return $v$
