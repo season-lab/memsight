@@ -124,6 +124,7 @@ class Executor(object):
 
             parent_state = pg.active[0].history._parent.state if pg.active[0].history._parent is not None else None
 
+            path = pg.active[0]
             state = pg.active[0].state
             addr = state.ip.args[0]
             
@@ -149,8 +150,10 @@ class Executor(object):
 
             #pdb.set_trace()    
 
+            print pg
+
             print "# Start of execution"
-            pg.step(opt_level=1, num_inst=num_inst) 
+            pg.step(opt_level=1, num_inst=num_inst, )  # selector_func = lambda x: x is path
             print "# End of execution\n"
 
             remove = []
@@ -170,7 +173,7 @@ class Executor(object):
                 pg.active.remove(path)
 
         if len(pg.active) == 0 and len(found) == 0:
-            print "Something went wrong: no active path, but not found path!"
+            print "Something went wrong: no active path, but no found path!"
             #pdb.set_trace() 
             sys.exit(1)
 

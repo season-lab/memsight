@@ -135,195 +135,240 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         return addr, size, reg_name
 
+    def _find_concrete_memory(self, a, b):
+
+        assert b >= a
+        addresses = []
+
+        if b - a > 1024:
+
+            print "start addr: " + str(a)
+            print "range: " + str(b - a)
+
+            addrs = sorted(self._concrete_memory.keys()) # expensive, we should keep it sorted accross ops
+            index = bisect.bisect_left(addrs, a)
+
+            print "index: " + str(index)
+            print "addrs[index]: " + str(addrs[index])
+
+            print index
+            while index < len(addrs):
+
+                if addrs[index] > b: 
+                    break
+
+                elif addrs[index] >= a:
+                    if addrs[index] in self._concrete_memory:
+                        addresses.append(addrs[index])
+                index += 1
+
+        else:
+            for addr in range(a, b + 1):
+                if addr in self._concrete_memory:
+                    addresses.append(addr)
+
+        return addresses
 
     def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False):
-        self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
 
-        i_addr = addr
-        i_size = size
+        try:
 
-        assert self._id == 'mem' or self._id == 'reg'
+            self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
 
-        addr, size, reg_name = self.memory_op(addr, size)        
+            i_addr = addr
+            i_size = size
 
-        if type(size) in (int, long):
+            assert self._id == 'mem' or self._id == 'reg'
 
-            min_addr = None
-            max_addr = None
+            addr, size, reg_name = self.memory_op(addr, size)        
 
-            # concrete address
-            if type(addr) in (int, long):
-                min_addr = addr
-                max_addr = addr
+            if type(size) in (int, long):
 
-            # symbolic addr
-            else:
-                min_addr = self.state.se.min_int(addr)
-                max_addr = self.state.se.max_int(addr)
-                if min_addr == max_addr:
-                    addr = min_addr
+                min_addr = None
+                max_addr = None
 
-            data = None
-            for k in range(size):
+                # concrete address
+                if type(addr) in (int, long):
+                    min_addr = addr
+                    max_addr = addr
 
-                obj = utils.get_unconstrained_bytes(self.state, "bottom", 8)
+                # symbolic addr
+                else:
+                    min_addr = self.state.se.min_int(addr)
+                    max_addr = self.state.se.max_int(addr)
+                    if min_addr == max_addr:
+                        addr = min_addr
 
-                self.log("\tLoading from: " + str(addr + k))
+                data = None
+                for k in range(size):
 
-                # check versus concrete addresses
-                for concrete_addr in range(min_addr + k, max_addr + k + 1):
+                    obj = utils.get_unconstrained_bytes(self.state, "bottom", 8)
 
-                    if concrete_addr in self._concrete_memory:
+                    self.log("\tLoading from: " + str(addr + k))
+
+                    # check versus concrete addresses
+                    concrete_addresses = self._find_concrete_memory(min_addr + k, max_addr + k)
+                    for concrete_addr in concrete_addresses:
 
                         v = self._concrete_memory[concrete_addr]
                         if max_addr == min_addr:
                             self.log("\tobject is: " + str(v))
                             obj = v
                         else:
-                            self.log("\tobject conditional is: " + str(v))
+                            self.log("\textending ite with: " + str(v))
                             obj = self.state.se.If(concrete_addr == addr + k, v, obj)
 
-                    else:
-                        self.log("\taddr is not in concrete memory")
+                    # check versus any symbolic address                
+                    for o in self._symbolic_memory:
 
-                # check versus any symbolic address                
-                for o in self._symbolic_memory:
+                        e = o[0]
+                        v = o[1]
 
-                    e = o[0]
-                    v = o[1]
+                        if self.intersect(e, addr + k):
+                            obj = self.state.se.If(e == addr + k, v, obj)
 
-                    if self.intersect(e, addr + k):
-                        obj = self.state.se.If(e == addr + k, v, obj)
+                    self.log("\tappending data: " + str(obj))
+                    data = self.state.se.Concat(data, obj) if data is not None else obj
 
-                self.log("\tappending data: " + str(obj))
-                data = self.state.se.Concat(data, obj) if data is not None else obj
+                # fix endness
+                endness = self._endness if endness is None else endness
+                if not ignore_endness and endness == "Iend_LE":
+                    self.log("\treversing data: " + str(data))
+                    data = data.reversed
 
-            # fix endness
-            endness = self._endness if endness is None else endness
-            if not ignore_endness and endness == "Iend_LE":
-                self.log("\treversing data: " + str(data))
-                data = data.reversed
+                self.log("\treturning data: " + str(data))
+                return data
 
-            self.log("\treturning data: " + str(data))
-            return data
+            assert False
 
-        assert False
-
+        except Exception as e:
+            print str(e)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
 
     def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False, internal=False):
         
-        if not internal:
-            self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
 
-        i_addr = addr
-        i_size = size
-        i_data = data
+        try:
 
-        assert self._id == 'mem' or self._id == 'reg'
+            if not internal:
+                self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
 
-        addr, size, reg_name = self.memory_op(addr, size, data)
+            i_addr = addr
+            i_size = size
+            i_data = data
 
-        # convert data to BVV if concrete
-        data = utils.convert_to_ast(self.state, data, size if isinstance(size, (int, long)) else None)
+            assert self._id == 'mem' or self._id == 'reg'
 
-        if type(size) in (int, long):
+            addr, size, reg_name = self.memory_op(addr, size, data)
 
-            assert len(data) / 8 == size
+            # convert data to BVV if concrete
+            data = utils.convert_to_ast(self.state, data, size if isinstance(size, (int, long)) else None)
 
-            # simplify
-            data = self.state.se.simplify(data)
+            if type(size) in (int, long):
 
-            # fix endness
-            endness = self._endness if endness is None else endness
-            if not ignore_endness and endness == "Iend_LE":
-                if not internal:
-                    self.log("\treversing data: " + str(data))
-                data = data.reversed
-                self.log("\treversed data: " + str(data))
+                assert len(data) / 8 == size
 
-            min_addr = None
-            max_addr = None
+                # simplify
+                data = self.state.se.simplify(data)
 
-            # concrete address
-            if type(addr) in (int, long):
-                min_addr = addr
-                max_addr = addr
-
-            # symbolic addr
-            else:
-                min_addr = self.state.se.min_int(addr)
-                max_addr = self.state.se.max_int(addr)
-                if min_addr == max_addr:
-                    addr = min_addr
-
-            to_add = []
-            to_replace = []
-            to_remove = []
-            for k in range(size):
-
-                obj = utils.get_obj_bytes(data, k, 1)[0]
-
-                if not internal:
-                    self.log("\tSlicing data with offset " + str(k) + " => " + str(obj))
-
-                # concrete addr
-                if type(addr) in (int, long):
+                # fix endness
+                endness = self._endness if endness is None else endness
+                if not ignore_endness and endness == "Iend_LE":
                     if not internal:
-                        self.log("\tAdding to concrete memory as: " + str(addr + k))
-                    self._concrete_memory[addr + k] = obj
+                        self.log("\treversing data: " + str(data))
+                    data = data.reversed
+                    self.log("\treversed data: " + str(data))
 
-                flag = False
-                count = 0
-                for o in self._symbolic_memory:
+                min_addr = None
+                max_addr = None
 
-                    e = o[0]
-                    v = o[1]
+                # concrete address
+                if type(addr) in (int, long):
+                    min_addr = addr
+                    max_addr = addr
 
-                    self.log("\tEval: " + str(e) + " with " + str(addr + k))
+                # symbolic addr
+                else:
+                    min_addr = self.state.se.min_int(addr)
+                    max_addr = self.state.se.max_int(addr)
+                    if min_addr == max_addr:
+                        addr = min_addr
 
-                    if self.disjoint(e, addr + k):
-                        self.log("\tDisjoint")
-                        continue
+                to_add = []
+                to_replace = []
+                to_remove = []
+                for k in range(size):
 
-                    elif self.equiv(e, addr + k):
-                        self.log("\tEquiv")
+                    obj = utils.get_obj_bytes(data, k, 1)[0]
 
-                        # if addr was
-                        if type(addr + k) in (int, long):
-                            to_remove.append(count)
+                    if not internal:
+                        self.log("\tSlicing data with offset " + str(k) + " => " + str(obj))
+
+                    # concrete addr
+                    if type(addr) in (int, long):
+                        if not internal:
+                            self.log("\tAdding to concrete memory as: " + str(addr + k))
+                        self._concrete_memory[addr + k] = obj
+
+                    flag = False
+                    count = 0
+                    for o in self._symbolic_memory:
+
+                        e = o[0]
+                        v = o[1]
+
+                        self.log("\tEval: " + str(e) + " with " + str(addr + k))
+
+                        if self.disjoint(e, addr + k):
+                            self.log("\tDisjoint")
+                            continue
+
+                        elif self.equiv(e, addr + k):
+                            self.log("\tEquiv")
+
+                            # if addr was
+                            if type(addr + k) in (int, long):
+                                to_remove.append(count)
+                            else:
+                                to_replace.append([e, obj])
+
+                            flag = True
+
                         else:
-                            to_replace.append([e, obj])
+                            self.log("\tOther")
+                            to_replace.append([e, self.state.se.If(e == addr + k, obj, v)])
 
-                        flag = True
+                        count += 1
 
-                    else:
-                        self.log("\tOther")
-                        to_replace.append([e, self.state.se.If(e == addr + k, obj, v)])
+                    if not flag and type(addr) not in (int, long):
+                        self.log("\tNot inserted. Added later.")
+                        to_add.append([addr + k, obj])
 
-                    count += 1
+                for q in range(len(to_remove)):
+                    index = to_remove[q]
+                    self._symbolic_memory.pop(index - q)
 
-                if not flag and type(addr) not in (int, long):
-                    self.log("\tNot inserted. Added later.")
-                    to_add.append([addr + k, obj])
+                for o in to_replace:
+                    for oo in self._symbolic_memory:
+                        if oo[0] is o[0]:
+                            self.log("\tReplacing for " + str(o[0]) + " data: " + str(oo[1]) + " => " + str(o[1]))
+                            oo[1] = o[1]
 
-            for q in range(len(to_remove)):
-                index = to_remove[q]
-                self._symbolic_memory.pop(index - q)
+                for o in to_add:
+                    self.log("\tAdding: " + str(o[0]) + " data: " + str(o[1]))
+                    self._symbolic_memory.append(o)
 
-            for o in to_replace:
-                for oo in self._symbolic_memory:
-                    if oo[0] is o[0]:
-                        self.log("\tReplacing for " + str(o[0]) + " data: " + str(oo[1]) + " => " + str(o[1]))
-                        oo[1] = o[1]
+                return
 
-            for o in to_add:
-                self.log("\tAdding: " + str(o[0]) + " data: " + str(o[1]))
-                self._symbolic_memory.append(o)
+            assert False   
 
-            return
-
-        assert False   
-
+        except Exception as e:
+            import traceback
+            print str(e)
+            traceback.print_exc()
+            sys.exit(1)
 
     def equiv(self, a, b):
         try:
