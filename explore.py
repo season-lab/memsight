@@ -5,9 +5,9 @@ import utils
 
 if __name__ == '__main__':
 
-    import logging
-    logging.getLogger('angr').setLevel(logging.DEBUG)
-    logging.getLogger('simuvex').setLevel(logging.DEBUG)
+    #import logging
+    #logging.getLogger('angr').setLevel(logging.DEBUG)
+    #logging.getLogger('simuvex').setLevel(logging.DEBUG)
 
     t, file = utils.parse_args(sys.argv)
 

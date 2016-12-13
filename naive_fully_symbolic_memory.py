@@ -142,16 +142,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         if b - a > 1024:
 
-            print "start addr: " + str(a)
-            print "range: " + str(b - a)
-
             addrs = sorted(self._concrete_memory.keys()) # expensive, we should keep it sorted accross ops
             index = bisect.bisect_left(addrs, a)
 
-            print "index: " + str(index)
-            print "addrs[index]: " + str(addrs[index])
-
-            print index
             while index < len(addrs):
 
                 if addrs[index] > b: 
@@ -168,6 +161,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     addresses.append(addr)
 
         return addresses
+
+    def build_ite(self, addr, addrs, v, obj):
+
+        if len(addrs) == 1:
+            cond = addr == addrs[0] 
+        else:
+            cond = self.state.se.And(addr >= addrs[0], addr <= addrs[-1])
+
+        return self.state.se.If(cond, v, obj)
 
     def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False):
 
@@ -208,15 +210,49 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                     # check versus concrete addresses
                     concrete_addresses = self._find_concrete_memory(min_addr + k, max_addr + k)
-                    for concrete_addr in concrete_addresses:
+                    if len(concrete_addresses) == 1:
 
-                        v = self._concrete_memory[concrete_addr]
-                        if max_addr == min_addr:
-                            self.log("\tobject is: " + str(v))
+                        v = self._concrete_memory[concrete_addresses[0]]
+                        if min_addr == max_addr: # constant addr
                             obj = v
                         else:
-                            self.log("\textending ite with: " + str(v))
-                            obj = self.state.se.If(concrete_addr == addr + k, v, obj)
+                            obj = self.state.se.If(addr + k == concrete_addresses[0], v, obj)
+
+                    else:
+
+                        addrs = []
+                        for i in range(len(concrete_addresses)):
+
+                            concrete_addr = concrete_addresses[i]
+                            addrs.append(concrete_addr)
+                            v = self._concrete_memory[concrete_addr]
+
+                            # lookahead for merging
+                            merged = False
+                            if i + 1 < len(concrete_addresses) and concrete_addr + 1 == concrete_addresses[i + 1]:
+
+                                next_v = self._concrete_memory[concrete_addr + 1]
+                                if v.op == 'BVV':
+
+                                    # both constant and equal
+                                    if next_v.op == 'BVV' and v.args[0] == next_v.args[0]:
+                                        #self.log("\tmerging ite with same constant and consecutive address")
+                                        merged = True
+
+                                # same symbolic object
+                                elif v is next_v:
+                                    #self.log("\tmerging ite with same sym and consecutive address")
+                                    merged = True
+
+                            if not merged:
+                                self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
+                                obj = self.build_ite(addr + k, addrs, v, obj)
+                                addrs = []
+
+                        if len(addrs) > 0:
+                            self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
+                            obj = self.build_ite(addr + k, addrs, v, obj)
+                            addrs = []
 
                     # check versus any symbolic address                
                     for o in self._symbolic_memory:
@@ -224,8 +260,13 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         e = o[0]
                         v = o[1]
 
+                        #self.log("\tchecking symbolic address: " + str(e) + " with " + str(addr + k))
+                        #pdb.set_trace()
+
                         if self.intersect(e, addr + k):
+                            #self.log("\tadding ite with symbolic address")
                             obj = self.state.se.If(e == addr + k, v, obj)
+
 
                     self.log("\tappending data: " + str(obj))
                     data = self.state.se.Concat(data, obj) if data is not None else obj
@@ -248,7 +289,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             sys.exit(1)
 
     def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False, internal=False):
-        
 
         try:
 
@@ -372,7 +412,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     def equiv(self, a, b):
         try:
-            return not self.state.se.eval(a != b, 1)[0]
+            cond = a != b
+            return self.state.se.satisfiable(extra_constraints=(cond,))
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -381,7 +422,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     def intersect(self, a, b):
         try:
-            return self.state.se.eval(a == b, 1)[0]
+            cond = a == b
+            return self.state.se.satisfiable(extra_constraints=(cond,))
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -389,17 +431,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
 
     def disjoint(self, a, b):
-        try:
-            return not self.state.se.eval(a == b, 1)[0]
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-
+        return not self.intersect(a, b)
 
     def dump_memory(self):
         pass
-
 
     def _resolve_size_range(self, size):
 
