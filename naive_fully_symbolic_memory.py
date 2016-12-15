@@ -413,7 +413,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def equiv(self, a, b):
         try:
             cond = a != b
-            return self.state.se.satisfiable(extra_constraints=(cond,))
+            return not self.state.se.satisfiable(extra_constraints=(cond,))
         except Exception as e:
             import traceback
             traceback.print_exc()
