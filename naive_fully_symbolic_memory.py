@@ -640,6 +640,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     def check_sigsegv_and_refine(self, addr, min_addr, max_addr, write_access):
 
+        if simuvex.o.STRICT_PAGE_ACCESS not in self.state.options:
+            return
+
         # (min_addr, max_addr) is our range addr
 
         access_type = "write" if write_access else "read"
