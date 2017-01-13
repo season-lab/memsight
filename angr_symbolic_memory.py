@@ -76,3 +76,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def verbose(self, v):
         if not v:
             l.setLevel(logging.INFO)
+
+    def map_region(self, addr, length, permissions):
+        self._angr_memory.map_region(addr, length, permissions)

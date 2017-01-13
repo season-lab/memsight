@@ -2,8 +2,12 @@ import executor
 import sys
 import factory
 import utils
+import logging
 
 if __name__ == '__main__':
+
+    #logging.getLogger('angr').setLevel(logging.DEBUG)
+    #logging.getLogger('simuvex').setLevel(logging.DEBUG)
 
     t, file = utils.parse_args(sys.argv)
 
