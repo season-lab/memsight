@@ -142,6 +142,32 @@
   
 \end{algorithm}
 
+\begin{algorithm}
+  \begin{algorithmic}[1]
+	\Function{merge}{$({{M}^1}_c, {{M}^1}_s, \pi^1)$, $({{M}^2}_c, {{M}^2}_s, \pi^2), ...$}:
+		\State $M_c \leftarrow \{\},~M_s \leftarrow \{\}$
+		\State $\pi \leftarrow \bigvee\limits_{i} pi^i $
+		\State
+
+		\For {$(e, v) \in {{M}^i}_c$} 
+			\If {$(e, v') \in M_c$}
+				\State $M_c \leftarrow {M_c}\vert_{e \mapsto ite(\pi^i, v, v')}$
+			\Else
+				\State $M_c \leftarrow {M_c}\vert_{e \mapsto ite(\pi^i, v, \bot)}$
+			\EndIf
+		\EndFor
+
+		\State
+
+		\For {$(e, v) \in {{M}^i}_s$} 
+			\State $M_s \leftarrow {M_s}\vert_{e \mapsto ite(\pi^i, v, \bot)}$
+		\EndFor
+
+		\State
+		\State \Return $(M_c, M_s, \pi)$
+	\EndFunction
+  \end{algorithmic}
+\end{algorithm}
 
 
 \end{document}

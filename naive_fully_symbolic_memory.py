@@ -35,6 +35,21 @@ class MemoryObject(object):
 
         return self.raw_byte
 
+    def compare(self, other):
+        if type(other) not in (MemoryObject,):
+            raise TypeError("Comparing " + str(type(self)) + " with " + str(type(other)) + " is not supported.")
+
+        if self.obj is not None and other.obj is not None:
+            if id(self.obj) == id(other.obj) and self.offset == other.offset:
+                return True
+            else:
+                return False
+        else:
+            if id(self.raw_byte) == id(other.raw_byte) or self.get_byte() == other.get_byte():
+                return True
+            else:
+                return False
+
 
 class MappedRegion(object):
 
@@ -126,7 +141,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 data = _ffi.buffer(backer)[:]
                 obj = claripy.BVV(data)
 
-                self.log("Initialing memory at " + hex(addr) + " with " + str(len(obj) / 8) + " bytes")
+                #self.log("Initialing memory at " + hex(addr) + " with " + str(len(obj) / 8) + " bytes")
 
                 for k in range(len(obj) / 8):
                     self._concrete_memory[k + addr] = MemoryObject(obj, k)
@@ -138,7 +153,21 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self.state = state    
         self._init_memory()
 
+    def _raw_ast(self, a):
+        if type(a) is simuvex.s_action_object.SimActionObject:
+            return a.ast
+        elif type(a) is dict:
+            return { k:_raw_ast(a[k]) for k in a }
+        elif type(a) in (tuple, list, set, frozenset):
+            return type(a)((_raw_ast(b) for b in a))
+        else:
+            return a
+
     def memory_op(self, addr, size, data=None):
+
+        addr = self._raw_ast(addr)
+        size = self._raw_ast(size)
+        data = self._raw_ast(data)
 
         reg_name = None
         if self._id == 'reg': 
@@ -312,14 +341,19 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     for o in self._symbolic_memory:
 
                         e = o[0]
-                        v = o[1].get_byte()
+                        v = o[1]
 
                         #self.log("\tchecking symbolic address: " + str(e) + " with " + str(addr + k))
                         #pdb.set_trace()
 
                         if self.intersect(e, addr + k):
                             #self.log("\tadding ite with symbolic address")
-                            obj = self.state.se.If(e == addr + k, v, obj)
+                            try:
+                                obj = self.state.se.If(e == addr + k, v.get_byte(), obj)
+                            except Exception as e:
+                                print str(e)
+                                import pdb
+                                pdb.set_trace()
 
 
                     #self.log("\tappending data: " + str(obj))
@@ -438,7 +472,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                         else:
                             self.log("\tOther")
-                            to_replace.append([e, self.state.se.If(e == addr + k, obj, v)])
+                            try:
+                                to_replace.append([e, MemoryObject(self.state.se.If(e == addr + k, obj.get_byte(), v.get_byte()), 0)])
+                            except Exception as e:
+                                import pdb
+                                print str(e)
+                                pdb.set_trace()
 
                         count += 1
 
@@ -587,6 +626,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def log(self, msg):
         l.debug("[" + self._id + "] " + msg)
 
+    def error(self, msg):
+        l.error("[" + self._id + "] " + msg)
+
 
     def verbose(self, v):
         if not v:
@@ -595,7 +637,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     def map_region(self, addr, length, permissions):
 
-        self.log("Required mapping of length " + str(length) + " at " + str(hex(addr)) + ".")
+        self.log("Required mapping of length " + str(length) + " at " + str(hex(addr if type(addr) in (long, int) else addr.args[0])) + ".")
 
         if self.state.se.symbolic(addr) or self.state.se.symbolic(length):
             assert False
@@ -645,52 +687,57 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         # (min_addr, max_addr) is our range addr
 
-        access_type = "write" if write_access else "read"
+        try:
 
-        if len(self._mapped_regions) == 0:
-            raise simuvex.s_errors.SimSegfaultError(min_addr, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
+            access_type = "write" if write_access else "read"
 
-        last_covered_addr = min_addr - 1
-        for region in self._mapped_regions:
+            if len(self._mapped_regions) == 0:
+                raise simuvex.s_errors.SimSegfaultError(min_addr, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
 
-            # region is after our range addr
-            if max_addr < region.addr:
-                break
+            last_covered_addr = min_addr - 1
+            for region in self._mapped_regions:
 
-            # region is before our range addr
-            if last_covered_addr + 1 > region.addr + region.length:
-                continue
+                # region is after our range addr
+                if max_addr < region.addr:
+                    break
 
-            # there is one addr in our range that could be not covered by any region
-            if last_covered_addr + 1 < region.addr:
+                # region is before our range addr
+                if last_covered_addr + 1 > region.addr + region.length:
+                    continue
 
-                # check with the solver: is there a solution for addr?
-                if self.state.se.satisfiable(extra_constraints=(addr >= last_covered_addr + 1, addr < region.addr,)):
-                    raise simuvex.s_errors.SimSegfaultError(last_covered_addr + 1, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
+                # there is one addr in our range that could be not covered by any region
+                if last_covered_addr + 1 < region.addr:
 
-            # last_covered_addr + 1 is inside this region
-            # let's check for permissions
+                    # check with the solver: is there a solution for addr?
+                    if self.state.se.satisfiable(extra_constraints=(addr >= last_covered_addr + 1, addr < region.addr,)):
+                        raise simuvex.s_errors.SimSegfaultError(last_covered_addr + 1, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
 
-            upper_addr = min(region.addr + region.length, max_addr)
-            if access_type == 'write':
-                if not region.is_writable() and self.state.se.satisfiable(extra_constraints=(addr >= last_covered_addr + 1, addr <= upper_addr,)):
-                    raise simuvex.s_errors.SimSegfaultError(last_covered_addr + 1, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
+                # last_covered_addr + 1 is inside this region
+                # let's check for permissions
 
-            elif access_type == 'read':
-                if not region.is_readable() and self.state.se.satisfiable(extra_constraints=(addr >= last_covered_addr + 1, addr <= upper_addr,)):
-                    raise simuvex.s_errors.SimSegfaultError(last_covered_addr + 1, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
+                upper_addr = min(region.addr + region.length, max_addr)
+                if access_type == 'write':
+                    if not region.is_writable() and self.state.se.satisfiable(extra_constraints=(addr >= last_covered_addr + 1, addr <= upper_addr,)):
+                        raise simuvex.s_errors.SimSegfaultError(last_covered_addr + 1, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
 
-            if max_addr > region.addr + region.length:
-                last_covered_addr = region.addr + region.length
-            else:
-                last_covered_addr = max_addr
+                elif access_type == 'read':
+                    if not region.is_readable() and self.state.se.satisfiable(extra_constraints=(addr >= last_covered_addr + 1, addr <= upper_addr,)):
+                        raise simuvex.s_errors.SimSegfaultError(last_covered_addr + 1, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
 
-        # last region could not cover up to max_addr
-        if last_covered_addr < max_addr:
+                if max_addr > region.addr + region.length:
+                    last_covered_addr = region.addr + region.length
+                else:
+                    last_covered_addr = max_addr
 
-            # we do not need to check with the solver since max_addr is already a valid solution for addr
-            raise simuvex.s_errors.SimSegfaultError(last_covered_addr + 1, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
-                                     
+            # last region could not cover up to max_addr
+            if last_covered_addr < max_addr:
+
+                # we do not need to check with the solver since max_addr is already a valid solution for addr
+                raise simuvex.s_errors.SimSegfaultError(last_covered_addr + 1, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
+
+        except:
+            print self.full_stack()
+
 
     def full_stack(self):
         import traceback, sys
@@ -704,3 +751,136 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         if not exc is None:
              stackstr += '  ' + traceback.format_exc().lstrip(trc)
         return stackstr
+
+
+    def merge(self, others, merge_conditions, common_ancestor=None):
+
+        self.log("Merging memories of " + str(len(others) + 1) + " states")
+        assert len(merge_conditions) == 1 + len(others)
+
+        #
+        count  = self._merge_concrete_addresses(others, merge_conditions)
+
+        #
+        count += self._merge_symbolic_addresses(others, merge_conditions)
+
+        #import pdb
+        #pdb.set_trace()
+
+        return count > 0
+
+
+    def _merge_concrete_addresses(self, others, merge_conditions):
+
+        self.log("Merging concrete addresses...")
+
+        count = 0
+        all = [self] + others
+
+        # get all in-use addresses among all memories
+        addresses = set(self._concrete_memory.keys())
+        for o in others:
+            self.log("Collecting used addresses...")
+            addresses |= set(o._concrete_memory.keys())
+
+        # for each address:
+        #   - if it is in use in all memories and it has the same byte content then do nothing
+        #   - otherwise map the address to an ite with all the possible contents + a bottom case
+        self.log("Checking addresses and updating them...")
+        for addr in addresses:
+
+            same_in_all = True
+            values = []
+            first_valid_value = None
+
+            for k in range(len(all)):
+                m = all[k]
+                value = None
+                if addr in m._concrete_memory:
+                    value = m._concrete_memory[addr]
+                    if k > 0 and values[0] is not None and not values[0].compare(value): # ToDo: it is correct to make a comparison? Expensive?
+                        same_in_all = False        
+                else: 
+                    same_in_all = False
+
+                values.append(value)
+
+            if not same_in_all:
+                obj = utils.get_unconstrained_bytes(self.state, "bottom", 8)
+                for k in range(len(values)):
+                    value = values[k]
+                    if value is None:
+                        continue
+                    value = value.get_byte()
+                    obj = self.state.se.If(merge_conditions[k], value, obj)
+
+                self._concrete_memory[addr] = MemoryObject(obj, 0)
+
+        return count
+
+
+    def _merge_symbolic_addresses(self, others, merge_conditions):
+
+        self.log("Merging symbolic addresses...")
+
+        count = 0
+        all = [self] + others
+
+        symbolic_memory = []
+        formulas = {}
+
+        # get all in-use symbolic addresses among all memories
+        for k in range(len(all)):
+
+            self.log("Collecting symbolic addresses..")
+            m = all[k]
+            for f, v in m._symbolic_memory:
+            
+                found = False
+                for ff, V in formulas.iteritems():
+
+                    # do we have the same _exact_ formula?
+                    if ff is f:
+
+                        for vv, mems in V.iteritems():
+                            # same content?
+                            if v.compare(vv):
+                                mems.append(k)
+                                found = True
+                                break
+
+                        if not found:
+                            V[v] = [k]
+                            found = True
+                            break
+
+                if not found:
+                    formulas[f] = { v : [k]}
+
+        self.log("Merging symbolic addresses")
+        for f, V in formulas.iteritems():
+
+            if len(V) == 1 and len(V[V.keys()[0]]) == len(all):
+                # the same formula with the same content in all memories
+                symbolic_memory.append([f, V.keys()[0]])
+                continue
+
+            obj = utils.get_unconstrained_bytes(self.state, "bottom", 8)
+            for v, mems in V.iteritems():
+
+                v = v.get_byte()
+                cond = None
+                for m in mems:
+                    if cond is None:
+                        cond = merge_conditions[m]
+                    else:
+                        cond = self.state.se.Or(cond, merge_conditions[m])
+
+                obj = self.state.se.If(cond, v, obj)
+
+            symbolic_memory.append([f, MemoryObject(obj, 0)]) 
+
+        self._symbolic_memory = symbolic_memory
+        return count
+
+    
