@@ -251,7 +251,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         return self.state.se.If(cond, v, obj)
 
-    def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False):
+    def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False, disable_actions=False):
+
+        # ToDo
+        # assert disable_actions
 
         try:
 
@@ -376,7 +379,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             traceback.print_exc()
             sys.exit(1)
 
-    def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False, internal=False):
+    def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False, internal=False, disable_actions=False):
+
+        # ToDO
+        # assert disable_actions
 
         try:
 

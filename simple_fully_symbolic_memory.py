@@ -128,8 +128,11 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         return addr, size, reg_name
 
 
-    def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False):
+    def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False, disable_actions=False):
         self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
+
+        # ToDO
+        # assert disable_actions
 
         i_addr = addr
         i_size = size
@@ -273,8 +276,11 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         obj = self.get_missing_bytes(data, missing, reg_name, addr)[0]
         return obj if data is None else self.state.se.Concat(data, obj)
 
-    def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False, internal=False):
+    def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False, internal=False, disable_actions=False):
         
+        # ToDO
+        # assert disable_actions
+
         if not internal:
             self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
 

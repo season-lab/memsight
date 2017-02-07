@@ -40,15 +40,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._angr_memory.set_state(state) 
 
 
-    def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False):
-        data = self._angr_memory.load(addr, size, condition, fallback, add_constraints, action, endness, inspect)
+    def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, disable_actions=False):
+        data = self._angr_memory.load(addr, size, condition, fallback, add_constraints, action, endness, inspect, disable_actions)
         self.log("Loading at " + str(addr) + " " + str(size) + " bytes. Data: " + str(data))
         return data
 
 
-    def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False):
+    def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, disable_actions=False):
         self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
-        self._angr_memory.store(addr, data, size, condition, add_constraints, endness, action, inspect, priv)
+        self._angr_memory.store(addr, data, size, condition, add_constraints, endness, action, inspect, priv, disable_actions)
 
 
     @property
