@@ -374,6 +374,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             assert False
 
         except Exception as e:
+
+            if type(e) in (simuvex.s_errors.SimSegfaultError,):
+                raise e
+
             print str(e)
             import traceback
             traceback.print_exc()
@@ -510,6 +514,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             assert False   
 
         except Exception as e:
+
+            if type(e) in (simuvex.s_errors.SimSegfaultError,):
+                raise e
+
             import traceback
             print str(e)
             traceback.print_exc()
@@ -741,7 +749,11 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 # we do not need to check with the solver since max_addr is already a valid solution for addr
                 raise simuvex.s_errors.SimSegfaultError(last_covered_addr + 1, "Invalid " + access_type + " access: [" + str(hex(min_addr)) + ", " + str(hex(max_addr)) + "]")
 
-        except:
+        except Exception as e:
+
+            if type(e) in (simuvex.s_errors.SimSegfaultError,):
+                raise e
+
             print self.full_stack()
 
 
