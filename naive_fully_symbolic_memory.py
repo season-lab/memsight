@@ -16,27 +16,30 @@ l.setLevel(logging.DEBUG)
 
 time_profile = {}
 count_ops = 0
+def update_counter(elapsed):
+    
+    global time_profile
+    global count_ops
+
+    if str(func.__name__) not in time_profile:
+        time_profile[str(func.__name__)] = elapsed
+    else:     
+        time_profile[str(func.__name__)] += elapsed
+    count_ops += 1
+
+    if count_ops > 0 and count_ops % 10000 == 0:
+        print "Profile:"
+        for f in time_profile:
+            print "\t" + str(f) + ": " + str(time_profile[f])
+
+
 def profile(func):
     def wrap(*args, **kwargs):
-
         import time
-        global count_ops
-        global time_profile
-
         started_at = time.time()
         result = func(*args, **kwargs)
         elapsed = time.time() - started_at
-        if str(func.__name__) not in time_profile:
-            time_profile[str(func.__name__)] = elapsed
-        else:     
-            time_profile[str(func.__name__)] += elapsed
-        count_ops += 1
-
-        if count_ops > 0 and count_ops % 10000 == 0:
-            print "Profile:"
-            for f in time_profile:
-                print "\t" + str(f) + ": " + str(time_profile[f])
-
+        update_counter(elapsed)
         return result
     return wrap
 
@@ -826,6 +829,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     @profile
     def _merge_concrete_addresses(self, others, merge_conditions, verbose=False):
 
+        import time
+        started_at = time.time()
+
         #self.log("Merging concrete addresses...")
 
         count = 0
@@ -881,10 +887,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         #self.log("\tConcrete addresses that were the same on all memories:     " + str(count_same_address), verbose)
         #self.log("\tConcrete addresses that were not the same on all memories: " + str(len(addresses) - count_same_address), verbose)
 
+        elapsed = time.time() - started_at
+        update_counter(elapsed)
+
         return count
 
-    @profile
     def _merge_symbolic_addresses(self, others, merge_conditions, verbose=False):
+
+        import time
+        started_at = time.time()
 
         #self.log("Merging symbolic addresses...", verbose)
 
@@ -955,6 +966,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         #self.log("\tSymbolic addresses that were not the same on all memories: " + str(len(symbolic_memory) - count_same_address), verbose)
 
         self._symbolic_memory = symbolic_memory
+
+        elapsed = time.time() - started_at
+        update_counter(elapsed)
+
         return count
 
     
