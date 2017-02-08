@@ -806,7 +806,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
              stackstr += '  ' + traceback.format_exc().lstrip(trc)
         return stackstr
 
-    @profile
+    #@profile
     def merge(self, others, merge_conditions, common_ancestor=None):
 
         self.log("Merging memories of " + str(len(others) + 1) + " states")
@@ -823,7 +823,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         return count > 0
 
-    @profile
+    #@profile
     def _merge_concrete_addresses(self, others, merge_conditions, verbose=False):
 
         self.log("Merging concrete addresses...")
@@ -883,7 +883,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         return count
 
-    @profile
+    #@profile
     def _merge_symbolic_addresses(self, others, merge_conditions, verbose=False):
 
         self.log("Merging symbolic addresses...", verbose)
