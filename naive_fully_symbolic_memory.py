@@ -821,9 +821,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         #
         count += self._merge_symbolic_addresses(others, merge_conditions)
 
-        import pdb
-        pdb.set_trace()
-
         return count > 0
 
     @profile
