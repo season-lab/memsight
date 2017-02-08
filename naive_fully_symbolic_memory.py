@@ -16,15 +16,15 @@ l.setLevel(logging.DEBUG)
 
 time_profile = {}
 count_ops = 0
-def update_counter(elapsed):
+def update_counter(elapsed, f):
     
     global time_profile
     global count_ops
 
-    if str(func.__name__) not in time_profile:
-        time_profile[str(func.__name__)] = elapsed
+    if str(f) not in time_profile:
+        time_profile[f] = elapsed
     else:     
-        time_profile[str(func.__name__)] += elapsed
+        time_profile[f] += elapsed
     count_ops += 1
 
     if count_ops > 0 and count_ops % 10000 == 0:
@@ -39,7 +39,7 @@ def profile(func):
         started_at = time.time()
         result = func(*args, **kwargs)
         elapsed = time.time() - started_at
-        update_counter(elapsed)
+        update_counter(elapsed, func.__name__)
         return result
     return wrap
 
@@ -888,7 +888,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         #self.log("\tConcrete addresses that were not the same on all memories: " + str(len(addresses) - count_same_address), verbose)
 
         elapsed = time.time() - started_at
-        update_counter(elapsed)
+        update_counter(elapsed, '_merge_concrete_addresses')
 
         return count
 
@@ -968,7 +968,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._symbolic_memory = symbolic_memory
 
         elapsed = time.time() - started_at
-        update_counter(elapsed)
+        update_counter(elapsed, '_merge_symbolic_addresses')
 
         return count
 
