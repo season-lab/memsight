@@ -806,10 +806,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
              stackstr += '  ' + traceback.format_exc().lstrip(trc)
         return stackstr
 
-    #@profile
+    @profile
     def merge(self, others, merge_conditions, common_ancestor=None):
 
-        self.log("Merging memories of " + str(len(others) + 1) + " states")
+        #self.log("Merging memories of " + str(len(others) + 1) + " states")
         assert len(merge_conditions) == 1 + len(others)
 
         #
@@ -823,27 +823,27 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         return count > 0
 
-    #@profile
+    @profile
     def _merge_concrete_addresses(self, others, merge_conditions, verbose=False):
 
-        self.log("Merging concrete addresses...")
+        #self.log("Merging concrete addresses...")
 
         count = 0
         all = [self] + others
 
         # get all in-use addresses among all memories
-        self.log("\tUsed addresses in 0: " + str(len(self._concrete_memory.keys())), verbose)
+        #self.log("\tUsed addresses in 0: " + str(len(self._concrete_memory.keys())), verbose)
         addresses = set(self._concrete_memory.keys())
         for k, o in enumerate(others):
             addresses |= set(o._concrete_memory.keys())
-            self.log("\tUsed addresses in " + str(k+1) + ": " + str(len(o._concrete_memory.keys())), verbose)
+            #self.log("\tUsed addresses in " + str(k+1) + ": " + str(len(o._concrete_memory.keys())), verbose)
 
-        self.log("\tUsed addresses over " + str(len(all)) + " memories: " + str(len(addresses)), verbose)
+        #self.log("\tUsed addresses over " + str(len(all)) + " memories: " + str(len(addresses)), verbose)
 
         # for each address:
         #   - if it is in use in all memories and it has the same byte content then do nothing
         #   - otherwise map the address to an ite with all the possible contents + a bottom case
-        self.log("\tChecking addresses and updating them...", verbose)
+        #self.log("\tChecking addresses and updating them...", verbose)
         count_same_address = 0
         for addr in addresses:
 
@@ -873,20 +873,20 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     obj = self.state.se.If(merge_conditions[k], value, obj)
 
                 self._concrete_memory[addr] = MemoryObject(obj, 0)
-                self.log("\tAddr " + str(hex(addr)) + " is replaced with: " + str(obj), verbose)
+                #self.log("\tAddr " + str(hex(addr)) + " is replaced with: " + str(obj), verbose)
 
             else:
                 count_same_address += 1
 
-        self.log("\tConcrete addresses that were the same on all memories:     " + str(count_same_address), verbose)
-        self.log("\tConcrete addresses that were not the same on all memories: " + str(len(addresses) - count_same_address), verbose)
+        #self.log("\tConcrete addresses that were the same on all memories:     " + str(count_same_address), verbose)
+        #self.log("\tConcrete addresses that were not the same on all memories: " + str(len(addresses) - count_same_address), verbose)
 
         return count
 
-    #@profile
+    @profile
     def _merge_symbolic_addresses(self, others, merge_conditions, verbose=False):
 
-        self.log("Merging symbolic addresses...", verbose)
+        #self.log("Merging symbolic addresses...", verbose)
 
         count = 0
         all = [self] + others
@@ -898,7 +898,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         for k in range(len(all)):
 
             m = all[k]
-            self.log("\tSymbolic formulas in memory " + str(k) + ": " + str(len(m._symbolic_memory)), verbose)
+            #self.log("\tSymbolic formulas in memory " + str(k) + ": " + str(len(m._symbolic_memory)), verbose)
             for f, v in m._symbolic_memory:
             
                 found = False
@@ -922,9 +922,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 if not found:
                     formulas[f] = { v : [k]}
 
-        self.log("\tSymbolic formulas among all memories: " + str(len(formulas)), verbose)
+        #self.log("\tSymbolic formulas among all memories: " + str(len(formulas)), verbose)
 
-        self.log("\tMerging symbolic addresses")
+        #self.log("\tMerging symbolic addresses")
         count_same_address = 0
         for f, V in formulas.iteritems():
 
@@ -932,7 +932,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 # the same formula with the same content in all memories
                 symbolic_memory.append([f, V.keys()[0]])
                 count_same_address += 1
-                self.log("\tUnchanged: symbolic address " + str(f) + ": " + str(symbolic_memory[-1][1].get_byte()), verbose)
+                #self.log("\tUnchanged: symbolic address " + str(f) + ": " + str(symbolic_memory[-1][1].get_byte()), verbose)
                 continue
 
             obj = utils.get_unconstrained_bytes(self.state, "bottom", 8)
@@ -948,11 +948,11 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 obj = self.state.se.If(cond, v, obj)
 
-            self.log("\tSymbolic address " + str(f) + " is replaced with: " + str(obj), verbose)
+            #self.log("\tSymbolic address " + str(f) + " is replaced with: " + str(obj), verbose)
             symbolic_memory.append([f, MemoryObject(obj, 0)]) 
 
-        self.log("\tSymbolic addresses that were the same on all memories:     " + str(count_same_address), verbose)
-        self.log("\tSymbolic addresses that were not the same on all memories: " + str(len(symbolic_memory) - count_same_address), verbose)
+        #self.log("\tSymbolic addresses that were the same on all memories:     " + str(count_same_address), verbose)
+        #self.log("\tSymbolic addresses that were not the same on all memories: " + str(len(symbolic_memory) - count_same_address), verbose)
 
         self._symbolic_memory = symbolic_memory
         return count
