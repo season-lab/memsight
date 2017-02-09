@@ -29,8 +29,8 @@ def update_counter(elapsed, f):
 
     if count_ops > 0 and count_ops % 1000 == 0:
         print "Profile:"
-        for f in time_profile:
-            print "\t" + str(f) + ": " + str(time_profile[f])
+        for ff in time_profile:
+            print "\t" + str(ff) + ": " + str(time_profile[ff])
 
 
 def profile(func):
