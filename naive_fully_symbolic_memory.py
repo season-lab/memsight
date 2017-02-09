@@ -563,6 +563,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @profile
     def equiv(self, a, b):
+        if id(a) == id(b):
+            return True
         try:
             cond = a != b
             return not self.state.se.satisfiable(extra_constraints=(cond,))
@@ -573,6 +575,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @profile
     def intersect(self, a, b):
+        if id(a) == id(b):
+            return True
         try:
             cond = a == b
             return self.state.se.satisfiable(extra_constraints=(cond,))
@@ -583,7 +587,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @profile
     def disjoint(self, a, b):
-        return not self.intersect(a, b)
+        if id(a) == id(b):
+            return False
+        try:
+            cond = a == b
+            return not self.state.se.satisfiable(extra_constraints=(cond,))
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
 
     @profile
     def dump_memory(self):
