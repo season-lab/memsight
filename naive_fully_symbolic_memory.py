@@ -382,11 +382,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                         e = o[0]
                         v = o[1]
+                        range_e = o[2]
+                        if range_e is None:
+                            range_e = [self.state.se.min_int(e), self.state.se.max_int(e)]
+                            o[2] = range_e
 
                         #self.log("\tchecking symbolic address: " + str(e) + " with " + str(addr + k))
                         #pdb.set_trace()
 
-                        if self.intersect(e, addr + k):
+                        if self.intersect(e, addr + k, range_e, [min_addr + k, max_addr + k]):
                             #self.log("\tadding ite with symbolic address")
                             try:
                                 obj = self.state.se.If(e == addr + k, v.get_byte(), obj)
@@ -500,14 +504,18 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                         e = o[0]
                         v = o[1]
+                        range_e = o[2]
+                        if range_e is None:
+                            range_e = [self.state.se.min_int(e), self.state.se.max_int(e)]
+                            o[2] = range_e
 
                         #self.log("\tEval: " + str(e) + " with " + str(addr + k))
 
-                        if self.disjoint(e, addr + k):
+                        if self.disjoint(e, addr + k, range_e, [min_addr + k, max_addr + k]):
                             self.log("\tDisjoint")
                             continue
 
-                        elif self.equiv(e, addr + k):
+                        elif self.equiv(e, addr + k, range_e, [min_addr + k, max_addr + k]):
                             self.log("\tEquiv")
 
                             # if addr was
@@ -545,7 +553,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 for o in to_add:
                     #self.log("\tAdding: " + str(o[0]) + " data: " + str(o[1]))
-                    self._symbolic_memory.append(o)
+                    self._symbolic_memory.append([o[0], o[1], [min_addr + k, max_addr + k]])
 
                 return
 
@@ -562,9 +570,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             sys.exit(1)
 
     @profile
-    def equiv(self, a, b):
+    def equiv(self, a, b, range_a=None, range_b=None):
         if id(a) == id(b):
             return True
+        if range_a is not None and range_b is not None and range_a[0] == range_b[0] and range_a[1] == range_b[1] and range_a[1] - range_b[0] == 1:
+            return True
+
         try:
             cond = a != b
             return not self.state.se.satisfiable(extra_constraints=(cond,))
@@ -574,9 +585,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             sys.exit(1)
 
     @profile
-    def intersect(self, a, b):
+    def intersect(self, a, b, range_a=None, range_b=None):
         if id(a) == id(b):
             return True
+        if range_a is not None and range_b is not None and (range_a[1] < range_b[0] or range_b[1] < range_a[0]):
+            return False
+
         try:
             cond = a == b
             return self.state.se.satisfiable(extra_constraints=(cond,))
@@ -586,9 +600,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             sys.exit(1)
 
     @profile
-    def disjoint(self, a, b):
+    def disjoint(self, a, b, range_a=None, range_b=None):
         if id(a) == id(b):
             return False
+        if range_a is not None and range_b is not None and (range_a[1] < range_b[0] or range_b[1] < range_a[0]):
+            return True
+        
         try:
             cond = a == b
             return not self.state.se.satisfiable(extra_constraints=(cond,))
@@ -911,7 +928,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             m = all[k]
             #self.log("\tSymbolic formulas in memory " + str(k) + ": " + str(len(m._symbolic_memory)), verbose)
-            for f, v in m._symbolic_memory:
+            for f, v, r in m._symbolic_memory:
             
                 found = False
                 for ff, V in formulas.iteritems():
@@ -942,7 +959,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             if len(V) == 1 and len(V[V.keys()[0]]) == len(all):
                 # the same formula with the same content in all memories
-                symbolic_memory.append([f, V.keys()[0]])
+                symbolic_memory.append([f, V.keys()[0], None])
                 count_same_address += 1
                 #self.log("\tUnchanged: symbolic address " + str(f) + ": " + str(symbolic_memory[-1][1].get_byte()), verbose)
                 continue
@@ -961,7 +978,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 obj = self.state.se.If(cond, v, obj)
 
             #self.log("\tSymbolic address " + str(f) + " is replaced with: " + str(obj), verbose)
-            symbolic_memory.append([f, MemoryObject(obj, 0)]) 
+            symbolic_memory.append([f, MemoryObject(obj, 0), None]) 
 
         #self.log("\tSymbolic addresses that were the same on all memories:     " + str(count_same_address), verbose)
         #self.log("\tSymbolic addresses that were not the same on all memories: " + str(len(symbolic_memory) - count_same_address), verbose)
