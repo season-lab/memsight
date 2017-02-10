@@ -21,7 +21,7 @@ def update_counter(elapsed, f):
     global time_profile
     global count_ops
 
-    if str(f) not in time_profile:
+    if f not in time_profile:
         time_profile[f] = elapsed
     else:     
         time_profile[f] += elapsed
@@ -148,7 +148,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # mapped regions
         self._mapped_regions = mapped_regions
 
-        self.log("symbolic memory has been created")
+        #self.log("symbolic memory has been created")
 
     @profile
     def _init_memory(self):
@@ -181,7 +181,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @profile
     def set_state(self, state):
-        self.log("setting current state...")
+        #self.log("setting current state...")
         self.state = state    
         self._init_memory()
 
@@ -208,17 +208,17 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             if type(addr) in (int, long):
                 reg_name = utils.reverse_addr_reg(self, addr)
-                self.log("\t" + str(addr) + " => " + str(reg_name))
+                #self.log("\t" + str(addr) + " => " + str(reg_name))
 
             if isinstance(addr, basestring):
                 reg_name = addr
                 addr, size_reg = utils.resolve_location_name(self, addr)
-                self.log("\t" + str(addr) + " => " + str(reg_name))
+                #self.log("\t" + str(addr) + " => " + str(reg_name))
 
                 # a load from a register, derive size from reg size
                 if size is None:
                     size = size_reg
-                    self.log("\tsize => " + str(size))
+                    #self.log("\tsize => " + str(size))
 
                 assert size_reg == size
 
@@ -228,7 +228,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         if size is None and type(data) in (claripy.ast.bv.BV,):
             size = len(data) / 8
             assert type(size) in (int, long)
-            self.log("\tsize => " + str(size))
+            #self.log("\tsize => " + str(size))
 
         # convert size to BVV if concrete
         if type(size) in (int, long):
@@ -295,7 +295,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         try:
 
-            self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
+            #self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
 
             i_addr = addr
             i_size = size
@@ -329,7 +329,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                     obj = utils.get_unconstrained_bytes(self.state, "bottom", 8)
 
-                    self.log("\tLoading from: " + str(addr + k))
+                    #self.log("\tLoading from: " + str(addr + k))
 
                     # check versus concrete addresses
                     concrete_addresses = self._find_concrete_memory(min_addr + k, max_addr + k)
@@ -368,12 +368,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                     merged = True
 
                             if not merged:
-                                self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
+                                #self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
                                 obj = self.build_ite(addr + k, addrs, v, obj)
                                 addrs = []
 
                         if len(addrs) > 0:
-                            self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
+                            #self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
                             obj = self.build_ite(addr + k, addrs, v, obj)
                             addrs = []
 
@@ -433,7 +433,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         try:
 
             if not internal:
-                self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
+                #self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
+                pass
 
             i_addr = addr
             i_size = size
@@ -495,7 +496,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     # concrete addr
                     if type(addr) in (int, long):
                         if not internal:
-                            self.log("\tAdding to concrete memory as: " + str(addr + k))
+                            #self.log("\tAdding to concrete memory as: " + str(addr + k))
+                            pass
                         self._concrete_memory[addr + k] = obj
 
                     flag = False
@@ -512,11 +514,11 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         #self.log("\tEval: " + str(e) + " with " + str(addr + k))
 
                         if self.disjoint(e, addr + k, range_e, [min_addr + k, max_addr + k]):
-                            self.log("\tDisjoint")
+                            #self.log("\tDisjoint")
                             continue
 
                         elif self.equiv(e, addr + k, range_e, [min_addr + k, max_addr + k]):
-                            self.log("\tEquiv")
+                            #self.log("\tEquiv")
 
                             # if addr was
                             if type(addr + k) in (int, long):
@@ -527,7 +529,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             flag = True
 
                         else:
-                            self.log("\tOther")
+                            #self.log("\tOther")
                             try:
                                 to_replace.append([e, MemoryObject(self.state.se.If(e == addr + k, obj.get_byte(), v.get_byte()), 0)])
                             except Exception as e:
@@ -538,7 +540,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         count += 1
 
                     if not flag and type(addr) not in (int, long):
-                        self.log("\tNot inserted. Added later.")
+                        #self.log("\tNot inserted. Added later.")
                         to_add.append([addr + k, obj])
 
                 for q in range(len(to_remove)):
@@ -573,6 +575,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def equiv(self, a, b, range_a=None, range_b=None):
         if id(a) == id(b):
             return True
+        assert range_a is not None and range_b is not None
         if range_a is not None and range_b is not None and range_a[0] == range_b[0] and range_a[1] == range_b[1] and range_a[1] - range_b[0] == 1:
             return True
 
@@ -588,6 +591,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def intersect(self, a, b, range_a=None, range_b=None):
         if id(a) == id(b):
             return True
+        assert range_a is not None and range_b is not None
         if range_a is not None and range_b is not None and (range_a[1] < range_b[0] or range_b[1] < range_a[0]):
             return False
 
@@ -603,6 +607,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def disjoint(self, a, b, range_a=None, range_b=None):
         if id(a) == id(b):
             return False
+        assert range_a is not None and range_b is not None 
         if range_a is not None and range_b is not None and (range_a[1] < range_b[0] or range_b[1] < range_a[0]):
             return True
         
@@ -635,7 +640,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             #print "addr " + str(self.state.ip)
             #print self.full_stack()
             #assert min_size == max_size
-            self.log("size is symbolic: using the max size")
+            #self.log("size is symbolic: using the max size")
+            pass
 
         if min_size > self._maximum_symbolic_size:
             assert False
@@ -650,7 +656,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @profile
     def copy(self):
-        self.log("Copying memory")
+        #self.log("Copying memory")
         s = SymbolicMemory(memory_backer=self._memory_backer, 
                                 permissions_backer=self._permissions_backer, 
                                 kind=self._id, 
@@ -677,7 +683,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # that exposes a _preapproved_stack attribute
         # (similarly as done by a paged memory)
 
-        self.log("getting reference to paged memory")
+        #self.log("getting reference to paged memory")
         #traceback.print_stack()
         return self
 
@@ -687,15 +693,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @_preapproved_stack.setter
     def _preapproved_stack(self, value):
-        self.log("Boundaries on stack have been set by the caller: (" + str(hex(value.start)) + ", " + str(hex(value.end)) + ")")
+        #self.log("Boundaries on stack have been set by the caller: (" + str(hex(value.start)) + ", " + str(hex(value.end)) + ")")
         
         if self._stack_range is not None:
-            self.log("\tUnnmapping old stack...")
+            #self.log("\tUnnmapping old stack...")
             for k in range(len(self._mapped_regions)):
                 region = self._mapped_regions[k]
                 if region.addr == self._stack_range.start:
                     del self._mapped_regions[k]
-                    self.log("\tDone.")
+                    #self.log("\tDone.")
                     break
 
         self._stack_range = value
@@ -718,7 +724,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     @profile
     def map_region(self, addr, length, permissions):
 
-        self.log("Required mapping of length " + str(length) + " at " + str(hex(addr if type(addr) in (long, int) else addr.args[0])) + ".")
+        #self.log("Required mapping of length " + str(length) + " at " + str(hex(addr if type(addr) in (long, int) else addr.args[0])) + ".")
 
         if self.state.se.symbolic(addr) or self.state.se.symbolic(length):
             assert False
@@ -734,7 +740,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # keep track of this region
         self._mapped_regions.append(MappedRegion(addr, length, permissions))
 
-        self.log("\t" + str(self._mapped_regions[-1]))
+        #self.log("\t" + str(self._mapped_regions[-1]))
 
         # sort mapped regions 
         self._mapped_regions = sorted(self._mapped_regions, key=lambda x: x.addr)
