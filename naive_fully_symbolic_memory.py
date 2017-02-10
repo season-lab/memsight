@@ -29,13 +29,15 @@ def update_counter(elapsed, f):
         time_profile[f][1] += elapsed
     
     count_ops += 1
+    
     if count_ops > 0 and count_ops % 1000 == 0:
-        print "Profile:"
+        print "Profiling stats:" # at depth=" + str(depth) + ":"
         for ff in time_profile:
             print "\t" + str(ff) + ": ncall=" + str(time_profile[ff][0]) + " ctime=" + str(time_profile[ff][1])
 
         print "\tMemory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
 
+    
 def profile(func):
     def wrap(*args, **kwargs):
         import time
@@ -401,16 +403,16 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 pdb.set_trace()
 
 
-                    self.log("\tappending data: " + str(obj))
+                    self.log("\tappending data") # + str(obj))
                     data = self.state.se.Concat(data, obj) if data is not None else obj
 
                 # fix endness
                 endness = self._endness if endness is None else endness
                 if not ignore_endness and endness == "Iend_LE":
-                    self.log("\treversing data: " + str(data))
+                    #self.log("\treversing data: " + str(data))
                     data = data.reversed
 
-                self.log("\treturning data: " + str(data))
+                #self.log("\treturning data: " + str(data))
                 return data
 
             assert False
@@ -434,7 +436,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         try:
 
             if not internal:
-                self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
+                self.log("Storing at " + str(addr) + " " + str(size) + " bytes.") # Content: " + str(data))
                 pass
 
             i_addr = addr
@@ -459,10 +461,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 endness = self._endness if endness is None else endness
                 if not ignore_endness and endness == "Iend_LE":
                     if not internal:
-                        self.log("\treversing data: " + str(data))
+                        #self.log("\treversing data: " + str(data))
                         pass
                     data = data.reversed
-                    self.log("\treversed data: " + str(data))
+                    #self.log("\treversed data: " + str(data))
 
 
                 min_addr = None
@@ -551,11 +553,11 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 for o in to_replace:
                     for oo in self._symbolic_memory:
                         if oo[0] is o[0]:
-                            self.log("\tReplacing for " + str(o[0]) + " data: " + str(oo[1]) + " => " + str(o[1]))
+                            self.log("\tReplacing for " + str(o[0])) # + " data: " + str(oo[1]) + " => " + str(o[1]))
                             oo[1] = o[1]
 
                 for o in to_add:
-                    self.log("\tAdding: " + str(o[0]) + " data: " + str(o[1]))
+                    self.log("\tAdding: " + str(o[0])) #+ " data: " + str(o[1]))
                     self._symbolic_memory.append([o[0], o[1], [min_addr + k, max_addr + k]])
 
                 return
