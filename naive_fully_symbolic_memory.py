@@ -10,6 +10,7 @@ import traceback
 import bisect
 import cffi
 import utils
+import resource
 
 l = logging.getLogger('naiveFullySymbolicMemory')
 l.setLevel(logging.DEBUG)
@@ -33,6 +34,7 @@ def update_counter(elapsed, f):
         for ff in time_profile:
             print "\t" + str(ff) + ": ncall=" + str(time_profile[ff][0]) + " ctime=" + str(time_profile[ff][1])
 
+        print "\tMemory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
 
 def profile(func):
     def wrap(*args, **kwargs):
