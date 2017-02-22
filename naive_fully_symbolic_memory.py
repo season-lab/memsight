@@ -15,8 +15,11 @@ import resource
 l = logging.getLogger('naiveFullySymbolicMemory')
 l.setLevel(logging.DEBUG)
 
+# profiling vars
 time_profile = {}
 count_ops = 0
+n_ite = 0
+
 def update_counter(elapsed, f):
     
     global time_profile
@@ -29,15 +32,51 @@ def update_counter(elapsed, f):
         time_profile[f][1] += elapsed
     
     count_ops += 1
-    
+    """
     if count_ops > 0 and count_ops % 1000 == 0:
         print "Profiling stats:" # at depth=" + str(depth) + ":"
         for ff in time_profile:
             print "\t" + str(ff) + ": ncall=" + str(time_profile[ff][0]) + " ctime=" + str(time_profile[ff][1])
 
         print "\tMemory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
+    """
 
-    
+def print_profiling_stats(depth, pg):
+
+    global time_profile
+    global n_ite
+
+    print
+    print "Profiling stats at depth=" + str(depth) + ":"
+    print
+    for ff in time_profile:
+        print "\t" + str(ff) + ": ncall=" + str(time_profile[ff][0]) + " ctime=" + str(time_profile[ff][1])
+
+    print
+    print
+
+    count_leaves = 0
+    count_bytes = 0
+    count_formulas = 0
+    for stash in pg.stashes:
+        if len(pg.stashes[stash]) <= 0:
+            continue
+        print "\tStash " + str(stash) + ":"
+        for p in pg.stashes[stash]:
+            print "\t\t" + str(len(p.state.memory._concrete_memory)) + ' ' + str(len(p.state.memory._symbolic_memory)) 
+            count_leaves += 1
+            count_bytes += len(p.state.memory._concrete_memory)
+            count_formulas += len(p.state.memory._symbolic_memory)
+
+    print
+    print "\tNumber of leaves: \t" + str(count_leaves)
+    print "\tLeaves: overall indexed concrete bytes: \t" + str(count_bytes)
+    print "\tLeaves: overall indexed formulas: \t" + str(count_formulas)
+    print "\tNumber of states explored: \t" + str(time_profile['__init__'][0]) #angr.path.count_paths)
+    print "\tNumber of generated ITE: \t" + str(n_ite)
+    print "\tMemory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
+    print
+
 def profile(func):
     def wrap(*args, **kwargs):
         import time
@@ -127,7 +166,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 symbolic_memory=[],
                 initialized=False,
                 stack_range=None,
-                mapped_regions=[]):
+                mapped_regions=[],
+                verbose=False):
         simuvex.plugins.plugin.SimStatePlugin.__init__(self)
 
         self._memory_backer = memory_backer
@@ -151,7 +191,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # mapped regions
         self._mapped_regions = mapped_regions
 
-        self.log("symbolic memory has been created")
+        self.verbose = verbose
+        if self.verbose: self.log("symbolic memory has been created")
 
     @profile
     def _init_memory(self):
@@ -175,7 +216,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 data = _ffi.buffer(backer)[:]
                 obj = claripy.BVV(data)
 
-                self.log("Initialing memory at " + hex(addr) + " with " + str(len(obj) / 8) + " bytes")
+                if self.verbose: self.log("Initialing memory at " + hex(addr) + " with " + str(len(obj) / 8) + " bytes")
 
                 for k in range(len(obj) / 8):
                     self._concrete_memory[k + addr] = MemoryObject(obj, k)
@@ -184,7 +225,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @profile
     def set_state(self, state):
-        self.log("setting current state...")
+        if self.verbose: self.log("setting current state...")
         self.state = state    
         self._init_memory()
 
@@ -193,9 +234,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         if type(a) is simuvex.s_action_object.SimActionObject:
             return a.ast
         elif type(a) is dict:
-            return { k:_raw_ast(a[k]) for k in a }
+            return { k:self._raw_ast(a[k]) for k in a }
         elif type(a) in (tuple, list, set, frozenset):
-            return type(a)((_raw_ast(b) for b in a))
+            return type(a)((self._raw_ast(b) for b in a))
         else:
             return a
 
@@ -211,17 +252,17 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             if type(addr) in (int, long):
                 reg_name = utils.reverse_addr_reg(self, addr)
-                self.log("\t" + str(addr) + " => " + str(reg_name))
+                if self.verbose: self.log("\t" + str(addr) + " => " + str(reg_name))
 
             if isinstance(addr, basestring):
                 reg_name = addr
                 addr, size_reg = utils.resolve_location_name(self, addr)
-                self.log("\t" + str(addr) + " => " + str(reg_name))
+                if self.verbose: self.log("\t" + str(addr) + " => " + str(reg_name))
 
                 # a load from a register, derive size from reg size
                 if size is None:
                     size = size_reg
-                    self.log("\tsize => " + str(size))
+                    if self.verbose: self.log("\tsize => " + str(size))
 
                 assert size_reg == size
 
@@ -231,7 +272,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         if size is None and type(data) in (claripy.ast.bv.BV,):
             size = len(data) / 8
             assert type(size) in (int, long)
-            self.log("\tsize => " + str(size))
+            if self.verbose: self.log("\tsize => " + str(size))
 
         # convert size to BVV if concrete
         if type(size) in (int, long):
@@ -288,6 +329,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         else:
             cond = self.state.se.And(addr >= addrs[0], addr <= addrs[-1])
 
+        global n_ite
+        n_ite += 1
+
         return self.state.se.If(cond, v, obj)
 
     @profile
@@ -298,7 +342,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         try:
 
-            self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
+            if self.verbose: self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
 
             i_addr = addr
             i_size = size
@@ -330,9 +374,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 data = None
                 for k in range(size):
 
-                    obj = utils.get_unconstrained_bytes(self.state, "bottom", 8)
+                    obj = utils.get_unconstrained_bytes(self.state, "bottom", 8, memory=self)
 
-                    self.log("\tLoading from: " + str(addr + k))
+                    if self.verbose: self.log("\tLoading from: " + str(addr + k))
 
                     # check versus concrete addresses
                     concrete_addresses = self._find_concrete_memory(min_addr + k, max_addr + k)
@@ -342,6 +386,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         if min_addr == max_addr: # constant addr
                             obj = v
                         else:
+
+                            global n_ite
+                            n_ite += 1
+
                             obj = self.state.se.If(addr + k == concrete_addresses[0], v, obj)
 
                     else:
@@ -362,21 +410,21 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                                     # both constant and equal
                                     if next_v.op == 'BVV' and v.args[0] == next_v.args[0]:
-                                        #self.log("\tmerging ite with same constant and consecutive address")
+                                        #if self.verbose: self.log("\tmerging ite with same constant and consecutive address")
                                         merged = True
 
                                 # same symbolic object
                                 elif v is next_v:
-                                    #self.log("\tmerging ite with same sym and consecutive address")
+                                    #if self.verbose: self.log("\tmerging ite with same sym and consecutive address")
                                     merged = True
 
                             if not merged:
-                                self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
+                                if self.verbose: self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
                                 obj = self.build_ite(addr + k, addrs, v, obj)
                                 addrs = []
 
                         if len(addrs) > 0:
-                            self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
+                            if self.verbose: self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
                             obj = self.build_ite(addr + k, addrs, v, obj)
                             addrs = []
 
@@ -390,12 +438,16 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             range_e = [self.state.se.min_int(e), self.state.se.max_int(e)]
                             o[2] = range_e
 
-                        self.log("\tchecking symbolic address: " + str(e) + " with " + str(addr + k))
+                        if self.verbose: self.log("\tchecking symbolic address: " + str(e) + " with " + str(addr + k))
                         #pdb.set_trace()
 
                         if self.intersect(e, addr + k, range_e, [min_addr + k, max_addr + k]):
-                            self.log("\tadding ite with symbolic address")
+                            if self.verbose: self.log("\tadding ite with symbolic address")
                             try:
+
+                                global n_ite
+                                n_ite += 1
+
                                 obj = self.state.se.If(e == addr + k, v.get_byte(), obj)
                             except Exception as e:
                                 print str(e)
@@ -403,16 +455,16 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 pdb.set_trace()
 
 
-                    self.log("\tappending data") # + str(obj))
+                    if self.verbose: self.log("\tappending data") # + str(obj))
                     data = self.state.se.Concat(data, obj) if data is not None else obj
 
                 # fix endness
                 endness = self._endness if endness is None else endness
                 if not ignore_endness and endness == "Iend_LE":
-                    #self.log("\treversing data: " + str(data))
+                    #if self.verbose: self.log("\treversing data: " + str(data))
                     data = data.reversed
 
-                #self.log("\treturning data: " + str(data))
+                #if self.verbose: self.log("\treturning data: " + str(data))
                 return data
 
             assert False
@@ -436,7 +488,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         try:
 
             if not internal:
-                self.log("Storing at " + str(addr) + " " + str(size) + " bytes.") # Content: " + str(data))
+                if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes.") # Content: " + str(data))
                 pass
 
             i_addr = addr
@@ -461,10 +513,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 endness = self._endness if endness is None else endness
                 if not ignore_endness and endness == "Iend_LE":
                     if not internal:
-                        #self.log("\treversing data: " + str(data))
+                        #if self.verbose: self.log("\treversing data: " + str(data))
                         pass
                     data = data.reversed
-                    #self.log("\treversed data: " + str(data))
+                    #if self.verbose: self.log("\treversed data: " + str(data))
 
 
                 min_addr = None
@@ -493,13 +545,13 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     obj = MemoryObject(data, k)
 
                     if not internal:
-                        #self.log("\tSlicing data with offset " + str(k) + " => " + str(obj))
+                        #if self.verbose: self.log("\tSlicing data with offset " + str(k) + " => " + str(obj))
                         pass
 
                     # concrete addr
                     if type(addr) in (int, long):
                         if not internal:
-                            self.log("\tAdding to concrete memory as: " + str(addr + k))
+                            if self.verbose: self.log("\tAdding to concrete memory as: " + str(addr + k))
                             pass
                         self._concrete_memory[addr + k] = obj
 
@@ -514,14 +566,14 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             range_e = [self.state.se.min_int(e), self.state.se.max_int(e)]
                             o[2] = range_e
 
-                        #self.log("\tEval: " + str(e) + " with " + str(addr + k))
+                        #if self.verbose: self.log("\tEval: " + str(e) + " with " + str(addr + k))
 
                         if self.disjoint(e, addr + k, range_e, [min_addr + k, max_addr + k]):
-                            self.log("\tDisjoint")
+                            if self.verbose: self.log("\tDisjoint")
                             continue
 
                         elif self.equiv(e, addr + k, range_e, [min_addr + k, max_addr + k]):
-                            self.log("\tEquiv")
+                            if self.verbose: self.log("\tEquiv")
 
                             # if addr was
                             if type(addr + k) in (int, long):
@@ -532,8 +584,11 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             flag = True
 
                         else:
-                            self.log("\tOther")
+                            if self.verbose: self.log("\tOther")
                             try:
+                                global n_ite
+                                n_ite += 1
+
                                 to_replace.append([e, MemoryObject(self.state.se.If(e == addr + k, obj.get_byte(), v.get_byte()), 0)])
                             except Exception as e:
                                 import pdb
@@ -543,7 +598,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         count += 1
 
                     if not flag and type(addr) not in (int, long):
-                        self.log("\tNot inserted. Added later.")
+                        if self.verbose: self.log("\tNot inserted. Added later.")
                         to_add.append([addr + k, obj])
 
                 for q in range(len(to_remove)):
@@ -553,11 +608,11 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 for o in to_replace:
                     for oo in self._symbolic_memory:
                         if oo[0] is o[0]:
-                            self.log("\tReplacing for " + str(o[0])) # + " data: " + str(oo[1]) + " => " + str(o[1]))
+                            if self.verbose: self.log("\tReplacing for " + str(o[0])) # + " data: " + str(oo[1]) + " => " + str(o[1]))
                             oo[1] = o[1]
 
                 for o in to_add:
-                    self.log("\tAdding: " + str(o[0])) #+ " data: " + str(o[1]))
+                    if self.verbose: self.log("\tAdding: " + str(o[0])) #+ " data: " + str(o[1]))
                     self._symbolic_memory.append([o[0], o[1], [min_addr + k, max_addr + k]])
 
                 return
@@ -641,9 +696,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # we do not support symbolic size yet...
         if min_size != max_size:
             #print "addr " + str(self.state.ip)
-            #print self.full_stack()
+            #print utils.full_stack()
             #assert min_size == max_size
-            self.log("size is symbolic: using the max size")
+            if self.verbose: self.log("size is symbolic: using the max size")
             pass
 
         if min_size > self._maximum_symbolic_size:
@@ -659,7 +714,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @profile
     def copy(self):
-        self.log("Copying memory")
+        if self.verbose: self.log("Copying memory")
         s = SymbolicMemory(memory_backer=self._memory_backer, 
                                 permissions_backer=self._permissions_backer, 
                                 kind=self._id, 
@@ -670,7 +725,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 symbolic_memory=self._symbolic_memory[:],
                                 initialized=self._initialized,
                                 stack_range=self._stack_range,
-                                mapped_regions=self._mapped_regions[:])
+                                mapped_regions=self._mapped_regions[:],
+                                verbose=self.verbose)
 
         return s
 
@@ -686,7 +742,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # that exposes a _preapproved_stack attribute
         # (similarly as done by a paged memory)
 
-        self.log("getting reference to paged memory")
+        if self.verbose: self.log("getting reference to paged memory")
         #traceback.print_stack()
         return self
 
@@ -696,15 +752,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @_preapproved_stack.setter
     def _preapproved_stack(self, value):
-        self.log("Boundaries on stack have been set by the caller: (" + str(hex(value.start)) + ", " + str(hex(value.end)) + ")")
+        if self.verbose: self.log("Boundaries on stack have been set by the caller: (" + str(hex(value.start)) + ", " + str(hex(value.end)) + ")")
         
         if self._stack_range is not None:
-            self.log("\tUnnmapping old stack...")
+            if self.verbose: self.log("\tUnnmapping old stack...")
             for k in range(len(self._mapped_regions)):
                 region = self._mapped_regions[k]
                 if region.addr == self._stack_range.start:
                     del self._mapped_regions[k]
-                    self.log("\tDone.")
+                    if self.verbose: self.log("\tDone.")
                     break
 
         self._stack_range = value
@@ -720,14 +776,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         l.error("[" + self._id + "] " + msg)
 
     @profile
-    def verbose(self, v):
+    def is_verbose(self, v):
+        self.verbose = v
         if not v:
             l.setLevel(logging.INFO)
 
     @profile
     def map_region(self, addr, length, permissions):
 
-        self.log("Required mapping of length " + str(length) + " at " + str(hex(addr if type(addr) in (long, int) else addr.args[0])) + ".")
+        if self.verbose: self.log("Required mapping of length " + str(length) + " at " + str(hex(addr if type(addr) in (long, int) else addr.args[0])) + ".")
 
         if self.state.se.symbolic(addr) or self.state.se.symbolic(length):
             assert False
@@ -743,7 +800,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # keep track of this region
         self._mapped_regions.append(MappedRegion(addr, length, permissions))
 
-        self.log("\t" + str(self._mapped_regions[-1]))
+        if self.verbose: self.log("\t" + str(self._mapped_regions[-1]))
 
         # sort mapped regions 
         self._mapped_regions = sorted(self._mapped_regions, key=lambda x: x.addr)
@@ -831,26 +888,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             if type(e) in (simuvex.s_errors.SimSegfaultError,):
                 raise e
 
-            print self.full_stack()
-
-    @profile
-    def full_stack(self):
-        import traceback, sys
-        exc = sys.exc_info()[0]
-        stack = traceback.extract_stack()[:-1]  # last one would be full_stack()
-        if not exc is None:     # i.e. if an exception is present
-            del stack[-1]       # remove call of full_stack, the printed exception
-                                # will contain the caught exception caller instead
-        trc = 'Traceback (most recent call last):\n'
-        stackstr = trc + ''.join(traceback.format_list(stack))
-        if not exc is None:
-             stackstr += '  ' + traceback.format_exc().lstrip(trc)
-        return stackstr
+            print utils.full_stack()
 
     @profile
     def merge(self, others, merge_conditions, common_ancestor=None):
 
-        self.log("Merging memories of " + str(len(others) + 1) + " states")
+        if self.verbose: self.log("Merging memories of " + str(len(others) + 1) + " states")
         assert len(merge_conditions) == 1 + len(others)
 
         #
@@ -864,24 +907,24 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     @profile
     def _merge_concrete_addresses(self, others, merge_conditions, verbose=False):
 
-        self.log("Merging concrete addresses...")
+        if self.verbose: self.log("Merging concrete addresses...")
 
         count = 0
         all = [self] + others
 
         # get all in-use addresses among all memories
-        self.log("\tUsed addresses in 0: " + str(len(self._concrete_memory.keys())), verbose)
+        if self.verbose: self.log("\tUsed addresses in 0: " + str(len(self._concrete_memory.keys())), verbose)
         addresses = set(self._concrete_memory.keys())
         for k, o in enumerate(others):
             addresses |= set(o._concrete_memory.keys())
-            self.log("\tUsed addresses in " + str(k+1) + ": " + str(len(o._concrete_memory.keys())), verbose)
+            if self.verbose: self.log("\tUsed addresses in " + str(k+1) + ": " + str(len(o._concrete_memory.keys())), verbose)
 
-        self.log("\tUsed addresses over " + str(len(all)) + " memories: " + str(len(addresses)), verbose)
+        if self.verbose: self.log("\tUsed addresses over " + str(len(all)) + " memories: " + str(len(addresses)), verbose)
 
         # for each address:
         #   - if it is in use in all memories and it has the same byte content then do nothing
         #   - otherwise map the address to an ite with all the possible contents + a bottom case
-        self.log("\tChecking addresses and updating them...", verbose)
+        if self.verbose: self.log("\tChecking addresses and updating them...", verbose)
         count_same_address = 0
         for addr in addresses:
 
@@ -902,7 +945,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 values.append(value)
 
             if not same_in_all:
-                obj = utils.get_unconstrained_bytes(self.state, "bottom", 8)
+                obj = utils.get_unconstrained_bytes(self.state, "bottom", 8, memory=self)
                 for k in range(len(values)):
                     value = values[k]
                     if value is None:
@@ -910,21 +953,24 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     value = value.get_byte()
                     obj = self.state.se.If(merge_conditions[k], value, obj)
 
+                    global n_ite
+                    n_ite += 1
+
                 self._concrete_memory[addr] = MemoryObject(obj, 0)
-                self.log("\tAddr " + str(hex(addr)) + " is replaced with: " + str(obj), verbose)
+                if self.verbose: self.log("\tAddr " + str(hex(addr)) + " is replaced with: " + str(obj), verbose)
 
             else:
                 count_same_address += 1
 
-        self.log("\tConcrete addresses that were the same on all memories:     " + str(count_same_address), verbose)
-        self.log("\tConcrete addresses that were not the same on all memories: " + str(len(addresses) - count_same_address), verbose)
+        if self.verbose: self.log("\tConcrete addresses that were the same on all memories:     " + str(count_same_address), verbose)
+        if self.verbose: self.log("\tConcrete addresses that were not the same on all memories: " + str(len(addresses) - count_same_address), verbose)
 
         return count
 
     @profile
     def _merge_symbolic_addresses(self, others, merge_conditions, verbose=False):
 
-        self.log("Merging symbolic addresses...", verbose)
+        if self.verbose: self.log("Merging symbolic addresses...", verbose)
 
         count = 0
         all = [self] + others
@@ -936,7 +982,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         for k in range(len(all)):
 
             m = all[k]
-            self.log("\tSymbolic formulas in memory " + str(k) + ": " + str(len(m._symbolic_memory)), verbose)
+            if self.verbose: self.log("\tSymbolic formulas in memory " + str(k) + ": " + str(len(m._symbolic_memory)), verbose)
             for f, v, r in m._symbolic_memory:
             
                 found = False
@@ -960,9 +1006,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 if not found:
                     formulas[f] = { v : [k]}
 
-        self.log("\tSymbolic formulas among all memories: " + str(len(formulas)), verbose)
+        if self.verbose: self.log("\tSymbolic formulas among all memories: " + str(len(formulas)), verbose)
 
-        self.log("\tMerging symbolic addresses")
+        if self.verbose: self.log("\tMerging symbolic addresses")
         count_same_address = 0
         for f, V in formulas.iteritems():
 
@@ -970,10 +1016,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 # the same formula with the same content in all memories
                 symbolic_memory.append([f, V.keys()[0], None])
                 count_same_address += 1
-                self.log("\tUnchanged: symbolic address " + str(f) + ": " + str(symbolic_memory[-1][1].get_byte()), verbose)
+                if self.verbose: self.log("\tUnchanged: symbolic address " + str(f) + ": " + str(symbolic_memory[-1][1].get_byte()), verbose)
                 continue
 
-            obj = utils.get_unconstrained_bytes(self.state, "bottom", 8)
+            obj = utils.get_unconstrained_bytes(self.state, "bottom", 8, memory=self)
             for v, mems in V.iteritems():
 
                 v = v.get_byte()
@@ -984,13 +1030,16 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     else:
                         cond = self.state.se.Or(cond, merge_conditions[m])
 
+                global n_ite
+                n_ite += 1
+
                 obj = self.state.se.If(cond, v, obj)
 
-            self.log("\tSymbolic address " + str(f) + " is replaced with: " + str(obj), verbose)
+            if self.verbose: self.log("\tSymbolic address " + str(f) + " is replaced with: " + str(obj), verbose)
             symbolic_memory.append([f, MemoryObject(obj, 0), None]) 
 
-        self.log("\tSymbolic addresses that were the same on all memories:     " + str(count_same_address), verbose)
-        self.log("\tSymbolic addresses that were not the same on all memories: " + str(len(symbolic_memory) - count_same_address), verbose)
+        if self.verbose: self.log("\tSymbolic addresses that were the same on all memories:     " + str(count_same_address), verbose)
+        if self.verbose: self.log("\tSymbolic addresses that were not the same on all memories: " + str(len(symbolic_memory) - count_same_address), verbose)
 
         self._symbolic_memory = symbolic_memory
 
