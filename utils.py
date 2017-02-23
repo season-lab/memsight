@@ -39,13 +39,10 @@ def get_unconstrained_bytes(state, name, bits, source=None, memory=None):
                 simuvex.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY in state.options):
         # CGC binaries zero-fill the memory for any allocated region
         # Reference: (https://github.com/CyberGrandChallenge/libcgc/blob/master/allocate.md)
-        if memory.verbose: memory.log("\treturning zero-valued unconconstrained bytes")
+        #if memory.verbose: memory.log("\treturning zero-valued unconconstrained bytes")
         return state.se.BVV(0, bits)
 
-    if memory is not None:
-        memory.log("\treturning fully unconconstrained bytes")
-        assert False
-
+    #if memory.verbose: memory.log("\treturning fully unconconstrained bytes")
     return state.se.Unconstrained(name, bits)
 
 

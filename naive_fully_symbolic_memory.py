@@ -11,6 +11,7 @@ import bisect
 import cffi
 import utils
 import resource
+import paged_memory
 
 l = logging.getLogger('naiveFullySymbolicMemory')
 l.setLevel(logging.DEBUG)
@@ -162,7 +163,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 arch=None, 
                 endness=None, 
                 check_permissions=None, 
-                concrete_memory={},
+                concrete_memory=None,
                 symbolic_memory=[],
                 initialized=False,
                 stack_range=None,
@@ -176,7 +177,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._arch = arch
         self._endness = "Iend_BE" if endness is None else endness
         
-        self._concrete_memory = concrete_memory
+        self._concrete_memory = concrete_memory if concrete_memory is not None else paged_memory.PagedMemory(self)
         self._symbolic_memory = symbolic_memory
 
         self._initialized = initialized
@@ -220,6 +221,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 for k in range(len(obj) / 8):
                     self._concrete_memory[k + addr] = MemoryObject(obj, k)
+
+            if self.verbose: self.log(str(len(self._concrete_memory)) + " concrete bytes in the memory")
 
         self._initialized = True
 
@@ -353,9 +356,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             if type(size) in (int, long):
 
-                min_addr = None
-                max_addr = None
-
                 # concrete address
                 if type(addr) in (int, long):
                     min_addr = addr
@@ -376,13 +376,14 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                     obj = utils.get_unconstrained_bytes(self.state, "bottom", 8, memory=self)
 
-                    if self.verbose: self.log("\tLoading from: " + str(addr + k))
+                    if self.verbose: self.log("\tLoading from: " + str(hex(addr + k) if type(addr) in (long, int) else (addr + k)))
 
                     # check versus concrete addresses
-                    concrete_addresses = self._find_concrete_memory(min_addr + k, max_addr + k)
-                    if len(concrete_addresses) == 1:
+                    concrete_objs = self._concrete_memory.find(min_addr + k, max_addr + k) # move this out of the loop and reuse it
+                    if len(concrete_objs) == 1:
 
-                        v = self._concrete_memory[concrete_addresses[0]].get_byte()
+                        item = concrete_objs.popitem()
+                        v = item[1].get_byte()
                         if min_addr == max_addr: # constant addr
                             obj = v
                         else:
@@ -390,22 +391,23 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             global n_ite
                             n_ite += 1
 
-                            obj = self.state.se.If(addr + k == concrete_addresses[0], v, obj)
+                            obj = self.state.se.If(addr + k == item[0], v, obj)
 
                     else:
 
                         addrs = []
+                        concrete_addresses = sorted(concrete_objs.keys())
                         for i in range(len(concrete_addresses)):
 
                             concrete_addr = concrete_addresses[i]
                             addrs.append(concrete_addr)
-                            v = self._concrete_memory[concrete_addr].get_byte()
+                            v = concrete_objs[concrete_addr].get_byte()
 
                             # lookahead for merging
                             merged = False
                             if i + 1 < len(concrete_addresses) and concrete_addr + 1 == concrete_addresses[i + 1]:
 
-                                next_v = self._concrete_memory[concrete_addr + 1].get_byte()
+                                next_v = concrete_objs[concrete_addr + 1].get_byte()
                                 if v.op == 'BVV':
 
                                     # both constant and equal
@@ -464,7 +466,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     #if self.verbose: self.log("\treversing data: " + str(data))
                     data = data.reversed
 
-                #if self.verbose: self.log("\treturning data: " + str(data))
+                if self.verbose: self.log("\treturning data: " + str(data))
                 return data
 
             assert False
@@ -488,7 +490,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         try:
 
             if not internal:
-                if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes.") # Content: " + str(data))
+                if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
                 pass
 
             i_addr = addr
@@ -551,7 +553,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     # concrete addr
                     if type(addr) in (int, long):
                         if not internal:
-                            if self.verbose: self.log("\tAdding to concrete memory as: " + str(addr + k))
+                            if self.verbose: self.log("\tAdding to concrete memory as: " + str(hex(addr + k)))
                             pass
                         self._concrete_memory[addr + k] = obj
 
@@ -687,7 +689,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         if not self.state.se.symbolic(size):
             i = self.state.se.any_int(size)
             if i > self._maximum_concrete_size:
-                raise SimMemoryLimitError("Concrete size %d outside of allowable limits" % i)
+                raise simuvex.SimMemoryLimitError("Concrete size %d outside of allowable limits" % i)
             return i, i
 
         max_size = self.state.se.max_int(size)
@@ -721,13 +723,14 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 arch=self._arch, 
                                 endness=self._endness, 
                                 check_permissions=None, 
-                                concrete_memory=self._concrete_memory.copy(),
+                                concrete_memory=None,
                                 symbolic_memory=self._symbolic_memory[:],
                                 initialized=self._initialized,
                                 stack_range=self._stack_range,
                                 mapped_regions=self._mapped_regions[:],
                                 verbose=self.verbose)
 
+        s._concrete_memory = self._concrete_memory.copy(s)
         return s
 
     @property
@@ -906,6 +909,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @profile
     def _merge_concrete_addresses(self, others, merge_conditions, verbose=False):
+
+        assert False
 
         if self.verbose: self.log("Merging concrete addresses...")
 

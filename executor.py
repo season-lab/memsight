@@ -72,10 +72,10 @@ class Executor(object):
         plugins = {}
         if mem_memory is not None:
             plugins['memory'] = mem_memory
-            mem_memory.verbose(False)
+            mem_memory.verbose = False
         if reg_memory is not None:
             plugins['registers'] = reg_memory
-            reg_memory.verbose(False)
+            reg_memory.verbose = False
 
         state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, plugins=plugins)
 

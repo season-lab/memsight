@@ -26,6 +26,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 angr_memory=None):
         simuvex.plugins.plugin.SimStatePlugin.__init__(self)
 
+        self.verbose = False
+
         if angr_memory is not None:
             self._angr_memory = angr_memory
             return
@@ -35,26 +37,23 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         elif kind == 'reg':
             self._angr_memory = simuvex.plugins.SimSymbolicMemory(memory_id="reg", endness=arch.register_endness)
 
-
     def set_state(self, state):
         self._angr_memory.set_state(state) 
 
 
     def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, disable_actions=False):
         data = self._angr_memory.load(addr, size, condition, fallback, add_constraints, action, endness, inspect, disable_actions)
-        self.log("Loading at " + str(addr) + " " + str(size) + " bytes. Data: " + str(data))
+        if self.verbose: self.log("Loading at " + str(addr) + " " + str(size) + " bytes. Data: " + str(data))
         return data
 
 
     def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, disable_actions=False):
-        self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
+        if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
         self._angr_memory.store(addr, data, size, condition, add_constraints, endness, action, inspect, priv, disable_actions)
-
 
     @property
     def category(self):
         return self._angr_memory.category
-
 
     def copy(self):
         return SymbolicMemory(angr_memory=self._angr_memory.copy())
@@ -63,19 +62,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def id(self):
         return self._angr_memory.id
 
-
     @property
     def mem(self):
         return self._angr_memory.mem
 
-
     def log(self, msg):
         l.debug("[" + self.id + "] " + msg)
-
-
-    def verbose(self, v):
-        if not v:
-            l.setLevel(logging.INFO)
 
     def map_region(self, addr, length, permissions):
         self._angr_memory.map_region(addr, length, permissions)

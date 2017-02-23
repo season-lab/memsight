@@ -37,4 +37,4 @@ def do_start(state):
 
 def do_end(state, params):
 	print state.se.any_str(params['arg'])
-	print state.se.constraints
+	#print state.se.constraints
