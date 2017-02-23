@@ -33,14 +33,14 @@ def update_counter(elapsed, f):
         time_profile[f][1] += elapsed
     
     count_ops += 1
-    """
     if count_ops > 0 and count_ops % 1000 == 0:
+        print
         print "Profiling stats:" # at depth=" + str(depth) + ":"
         for ff in time_profile:
             print "\t" + str(ff) + ": ncall=" + str(time_profile[ff][0]) + " ctime=" + str(time_profile[ff][1])
 
         print "\tMemory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
-    """
+        print
 
 def print_profiling_stats(depth, pg):
 
@@ -343,6 +343,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # ToDo
         # assert disable_actions
 
+        global n_ite
+
         try:
 
             if self.verbose: self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
@@ -388,7 +390,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             obj = v
                         else:
 
-                            global n_ite
                             n_ite += 1
 
                             obj = self.state.se.If(addr + k == item[0], v, obj)
@@ -447,7 +448,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             if self.verbose: self.log("\tadding ite with symbolic address")
                             try:
 
-                                global n_ite
                                 n_ite += 1
 
                                 obj = self.state.se.If(e == addr + k, v.get_byte(), obj)
@@ -486,6 +486,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         # ToDO
         # assert disable_actions
+        global n_ite
 
         try:
 
@@ -588,7 +589,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         else:
                             if self.verbose: self.log("\tOther")
                             try:
-                                global n_ite
+
                                 n_ite += 1
 
                                 to_replace.append([e, MemoryObject(self.state.se.If(e == addr + k, obj.get_byte(), v.get_byte()), 0)])
@@ -911,6 +912,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def _merge_concrete_addresses(self, others, merge_conditions, verbose=False):
 
         assert False
+        global n_ite
 
         if self.verbose: self.log("Merging concrete addresses...")
 
@@ -958,7 +960,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     value = value.get_byte()
                     obj = self.state.se.If(merge_conditions[k], value, obj)
 
-                    global n_ite
                     n_ite += 1
 
                 self._concrete_memory[addr] = MemoryObject(obj, 0)
@@ -976,6 +977,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def _merge_symbolic_addresses(self, others, merge_conditions, verbose=False):
 
         if self.verbose: self.log("Merging symbolic addresses...", verbose)
+
+        global n_ite
 
         count = 0
         all = [self] + others
@@ -1035,7 +1038,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     else:
                         cond = self.state.se.Or(cond, merge_conditions[m])
 
-                global n_ite
                 n_ite += 1
 
                 obj = self.state.se.If(cond, v, obj)
