@@ -14,6 +14,6 @@ def do_start(state):
 	return params
 
 def do_end(state, params):
-	print "EDI: " + str(state.se.any_n_int(params['edi'], 5))
-	print "Constraints:"
-	print state.se.constraints
+	sol = state.se.any_n_int(params['edi'], 5)
+	for s in sol: assert s < 1000
+	print "EDI: " + str(sol)

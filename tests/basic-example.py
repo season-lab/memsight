@@ -14,7 +14,18 @@ def do_start(state):
 	return params
 
 def do_end(state, params):
-	print "EDI: " + str(state.se.any_n_int(params['edi'], 5))
-	print "ESI: " + str(state.se.any_n_int(params['esi'], 5))
+	o = state.se.Concat(params['edi'], params['esi'])
+	sol = state.se.any_n_int(o, 5)
+	import ctypes
+	esi = []
+	edi = []
+	for k in range(len(sol)):
+		edi.append(ctypes.c_int((sol[k] & (0xFFFFFFFF << 32)) >> 32).value)
+		esi.append(ctypes.c_int(sol[k] & 0xFFFFFFFF).value)
+		assert edi[-1] in (2L, -2147483646)
+		assert esi[-1] in (0,)
+
+	print "EDI: " + str(edi)
+	print "ESI: " + str(esi)
 	print "Constraints:"
 	print state.se.constraints
