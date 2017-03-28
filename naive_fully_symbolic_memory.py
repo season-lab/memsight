@@ -12,6 +12,7 @@ import cffi
 import utils
 import resource
 import paged_memory
+import range_map
 
 l = logging.getLogger('naiveFullySymbolicMemory')
 l.setLevel(logging.DEBUG)
@@ -164,7 +165,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 endness=None, 
                 check_permissions=None, 
                 concrete_memory=None,
-                symbolic_memory=[],
+                symbolic_memory=None,
                 initialized=False,
                 stack_range=None,
                 mapped_regions=[],
@@ -178,7 +179,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._endness = "Iend_BE" if endness is None else endness
         
         self._concrete_memory = concrete_memory if concrete_memory is not None else paged_memory.PagedMemory(self)
-        self._symbolic_memory = symbolic_memory
+        self._symbolic_memory = symbolic_memory if symbolic_memory is not None else range_map.RangeMap()
 
         self._initialized = initialized
 
@@ -431,32 +432,27 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             obj = self.build_ite(addr + k, addrs, v, obj)
                             addrs = []
 
-                    # check versus any symbolic address                
-                    for o in self._symbolic_memory:
+                    # check versus any symbolic address
+                    formulas = self._symbolic_memory.query(min_addr + k, max_addr + k)
+                    for f in formulas:
 
-                        e = o[0]
-                        v = o[1]
-                        range_e = o[2]
-                        if range_e is None:
-                            range_e = [self.state.se.min_int(e), self.state.se.max_int(e)]
-                            o[2] = range_e
-
-                        if self.verbose: self.log("\tchecking symbolic address: " + str(e) + " with " + str(addr + k))
-                        #pdb.set_trace()
+                        e = f[2][0]
+                        v = f[2][1]
+                        range_e = [f[0], f[1]]
 
                         if self.intersect(e, addr + k, range_e, [min_addr + k, max_addr + k]):
                             if self.verbose: self.log("\tadding ite with symbolic address")
                             try:
 
                                 n_ite += 1
-
                                 obj = self.state.se.If(e == addr + k, v.get_byte(), obj)
+
                             except Exception as e:
                                 print str(e)
                                 import pdb
                                 pdb.set_trace()
 
-
+                    # concat single-byte objs
                     if self.verbose: self.log("\tappending data") # + str(obj))
                     data = self.state.se.Concat(data, obj) if data is not None else obj
 
@@ -537,12 +533,18 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     if min_addr == max_addr:
                         addr = min_addr
 
+                if self.verbose: self.log("\tTest 1")
+
                 # check permissions
                 self.check_sigsegv_and_refine(addr, min_addr, max_addr, True)
 
-                to_add = []
-                to_replace = []
-                to_remove = []
+                if self.verbose: self.log("\tTest 2")
+
+                # conflicting symbolic formulas
+                formulas = self._symbolic_memory.query(min_addr, max_addr + size)
+
+                if self.verbose: self.log("\tConflicting formulas: " + str(formulas))
+
                 for k in range(size):
 
                     obj = MemoryObject(data, k)
@@ -559,64 +561,56 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         self._concrete_memory[addr + k] = obj
 
                     flag = False
-                    count = 0
-                    for o in self._symbolic_memory:
+                    for f in formulas:
 
-                        e = o[0]
-                        v = o[1]
-                        range_e = o[2]
-                        if range_e is None:
-                            range_e = [self.state.se.min_int(e), self.state.se.max_int(e)]
-                            o[2] = range_e
+                        e = f[2][0]
+                        v = f[2][1]
+                        range_e = [f[0], f[1]]
+
+                        if not self._symbolic_memory._intersect(range_e[0], range[1], min_addr + k, max_addr + k):
+                            continue
 
                         #if self.verbose: self.log("\tEval: " + str(e) + " with " + str(addr + k))
 
+                        # RangeMap may not be accurate
                         if self.disjoint(e, addr + k, range_e, [min_addr + k, max_addr + k]):
-                            if self.verbose: self.log("\tDisjoint")
+                            if self.verbose: self.log("\tDisjoint... skipping")
                             continue
 
-                        elif self.equiv(e, addr + k, range_e, [min_addr + k, max_addr + k]):
-                            if self.verbose: self.log("\tEquiv")
+                        elif self.same(e, addr + k, range_e, [min_addr + k, max_addr + k]):
+                            if self.verbose: self.log("\tSame... replacing")
 
-                            # if addr was
+                            # if our addr is concrete then we have already a related entry inside the concrete memory
+                            # we can safely (?) remove it from the symbolic memory
                             if type(addr + k) in (int, long):
-                                to_remove.append(count)
+                                self._symbolic_memory.remove(f)
                             else:
-                                to_replace.append([e, obj])
+
+                                new_f = (range_e[0], range_e[1], [addr + k, obj])
+                                self._symbolic_memory.replace(f, new_f)
 
                             flag = True
 
                         else:
-                            if self.verbose: self.log("\tOther")
+
+                            # the two formulas are not disjoint and are not the same
+                            # thus they intesect
+
+                            if self.verbose: self.log("\tIntersect... expanding")
                             try:
 
                                 n_ite += 1
+                                new_f = (f[0], f[1], (addr + k, MemoryObject(self.state.se.If(e == addr + k, obj.get_byte(), v.get_byte()), 0)))
+                                self._symbolic_memory.replace(f, new_f)
 
-                                to_replace.append([e, MemoryObject(self.state.se.If(e == addr + k, obj.get_byte(), v.get_byte()), 0)])
                             except Exception as e:
                                 import pdb
                                 print str(e)
                                 pdb.set_trace()
 
-                        count += 1
-
                     if not flag and type(addr) not in (int, long):
-                        if self.verbose: self.log("\tNot inserted. Added later.")
-                        to_add.append([addr + k, obj])
-
-                for q in range(len(to_remove)):
-                    index = to_remove[q]
-                    self._symbolic_memory.pop(index - q)
-
-                for o in to_replace:
-                    for oo in self._symbolic_memory:
-                        if oo[0] is o[0]:
-                            if self.verbose: self.log("\tReplacing for " + str(o[0])) # + " data: " + str(oo[1]) + " => " + str(o[1]))
-                            oo[1] = o[1]
-
-                for o in to_add:
-                    if self.verbose: self.log("\tAdding: " + str(o[0])) #+ " data: " + str(o[1]))
-                    self._symbolic_memory.append([o[0], o[1], [min_addr + k, max_addr + k]])
+                        if self.verbose: self.log("\tAdding...")
+                        self._symbolic_memory.add(min_addr + k , max_addr + k, (addr + k, obj))
 
                 return
 
@@ -633,7 +627,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             sys.exit(1)
 
     @profile
-    def equiv(self, a, b, range_a=None, range_b=None):
+    def same(self, a, b, range_a=None, range_b=None):
+
+        # true if the two formulas can cover exactly one address
+        # I don't know if there could be other scenarios where this
+        # can be true...
+
         if id(a) == id(b):
             return True
         assert range_a is not None and range_b is not None
@@ -724,8 +723,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 arch=self._arch, 
                                 endness=self._endness, 
                                 check_permissions=None, 
-                                concrete_memory=None,
-                                symbolic_memory=self._symbolic_memory[:],
+                                concrete_memory=self._concrete_memory, # we do it properly later since we have to pass to copy() a reference to the new memory
+                                symbolic_memory=self._symbolic_memory.copy(),
                                 initialized=self._initialized,
                                 stack_range=self._stack_range,
                                 mapped_regions=self._mapped_regions[:],
@@ -976,6 +975,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     @profile
     def _merge_symbolic_addresses(self, others, merge_conditions, verbose=False):
 
+        assert False # ToDo
         if self.verbose: self.log("Merging symbolic addresses...", verbose)
 
         global n_ite
