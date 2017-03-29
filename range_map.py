@@ -46,11 +46,11 @@ class RangeMap(object):
 
     def query(self, start, end):
 
-        result = set()
+        result = []
 
         for r in self._large_ranges:
             if self._intersect(start, end, r[0], r[1]):
-                result.add(r)
+                self._insert_if_not_in(result, r)
 
 
         begin = int(start / RangeMap.PAGE_SIZE)
@@ -64,7 +64,7 @@ class RangeMap(object):
                 if index in self._ranges:
                     for r in self._ranges[index]:
                         if self._intersect(start, end, r[0], r[1]):
-                            result.add(r)
+                            self._insert_if_not_in(result, r)
 
                 index += 1
 
@@ -78,7 +78,7 @@ class RangeMap(object):
                 index = indexes[k]
                 for r in self._ranges[index]:
                     if self._intersect(start, end, r[0], r[1]):
-                        result.add(r)
+                        self._insert_if_not_in(result, r)
 
                 k += 1
 
@@ -115,7 +115,7 @@ class RangeMap(object):
 
         pos = self._find_by_id(self._large_ranges, id(old))
         if pos is not None:
-            self._large_ranges[k] = new
+            self._large_ranges[pos] = new
             return
 
         begin = int(new[0] / RangeMap.PAGE_SIZE)
@@ -155,6 +155,12 @@ class RangeMap(object):
                 return k
         return None
 
+    def _insert_if_not_in(self, list, obj):
+        for k in range(len(list)):
+            o = list[k]
+            if id(o) == id(obj):
+                return
+        list.append(obj)
 
     def copy(self):
         rm = RangeMap(list(self._large_ranges), dict(self._ranges), self._size)
