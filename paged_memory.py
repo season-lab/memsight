@@ -147,7 +147,7 @@ class PagedMemory(object):
             offset = start % self.PAGE_SIZE
 
             #print "min_index=" + str(min_index) + " max_index=" + str(max_index)
-            print indexes
+            #print indexes
 
             pos = bisect.bisect_left(indexes, min_index)
 

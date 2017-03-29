@@ -88,8 +88,9 @@ class RangeMap(object):
 
         # r must be returned by query()
 
-        if r in self._large_ranges:
-            self._large_ranges.remove(r)
+        pos = self._find_by_id(self._large_ranges, id(r))
+        if pos is not None:
+            self._large_ranges.pop(pos)
             return
 
         begin = int(r[0] / RangeMap.PAGE_SIZE)
@@ -99,8 +100,9 @@ class RangeMap(object):
         while index <= finish:
 
             if index in self._ranges:
-                if r in self._ranges[index]:
-                    self._ranges[index].remove(r)
+                pos = self._find_by_id(self._ranges[index], id(r))
+                if pos is not None:
+                    self._ranges[index].pop(pos)
 
             index += 1
 
@@ -111,9 +113,9 @@ class RangeMap(object):
         # old must be returned by query()
         assert old[0] == new[0] and old[1] == new[1]
 
-        if old in self._large_ranges:
-            self._large_ranges.remove(old)
-            self._large_ranges.append(new)
+        pos = self._find_by_id(self._large_ranges, id(old))
+        if pos is not None:
+            self._large_ranges[k] = new
             return
 
         begin = int(new[0] / RangeMap.PAGE_SIZE)
@@ -123,9 +125,9 @@ class RangeMap(object):
         while index <= finish:
 
             if index in self._ranges:
-                if old in self._ranges[index]:
-                    self._ranges[index].remove(old)
-                    self._ranges[index].append(new)
+                pos = self._find_by_id(self._ranges[index], id(old))
+                if pos is not None:
+                    self._ranges[index][pos] = new
 
             index += 1
 
@@ -145,6 +147,14 @@ class RangeMap(object):
             return True
 
         return False
+
+    def _find_by_id(self, list, obj_id):
+        for k in range(len(list)):
+            o = list[k]
+            if id(o) == obj_id:
+                return k
+        return None
+
 
     def copy(self):
         rm = RangeMap(list(self._large_ranges), dict(self._ranges), self._size)
