@@ -604,6 +604,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 self._symbolic_memory.replace(f, new_f)
 
                             except Exception as e:
+                                import traceback
+                                traceback.print_exc()
                                 import pdb
                                 print str(e)
                                 pdb.set_trace()
