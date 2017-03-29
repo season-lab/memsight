@@ -187,6 +187,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._maximum_symbolic_size = 8 * 1024
         self._maximum_concrete_size = 0x1000000
 
+        self._abstract_backer = None
+
         # stack range
         self._stack_range = stack_range
 
@@ -462,6 +464,21 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     #if self.verbose: self.log("\treversing data: " + str(data))
                     data = data.reversed
 
+                if not disable_actions:
+                    if simuvex.o.AST_DEPS in self.state.options and self.category == 'reg':
+                        r = simuvex.SimActionObject(data, reg_deps=frozenset((addr,)))
+
+                    if simuvex.o.AUTO_REFS in self.state.options and action is None:
+                        ref_size = size if size is not None else (data.size() / 8)
+                        region_type = self.category
+                        if region_type == 'file':
+                            # Special handling for files to keep compatibility
+                            # We may use some refactoring later
+                            region_type = self.id
+                        action = simuvex.SimActionData(self.state, region_type, 'read', addr=addr, data=data, size=ref_size,
+                                               condition=condition, fallback=fallback)
+                        self.state.log.add_action(action)
+
                 #if self.verbose: self.log("\treturning data: " + str(data))
                 return data
 
@@ -614,6 +631,24 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         if self.verbose: self.log("\tAdding...")
                         self._symbolic_memory.add(min_addr + k , max_addr + k, (addr + k, obj))
 
+                if not disable_actions:
+                    if simuvex.o.AUTO_REFS in self.state.options and action is None and not self._abstract_backer:
+
+                        ref_size = size if size is not None else (data.size() / 8)
+                        region_type = self.category
+                        if region_type == 'file':
+                            # Special handling for files to keep compatibility
+                            # We may use some refactoring later
+                            region_type = self.id
+                        action = simuvex.SimActionData(self.state, region_type, 'write', addr=addr, data=data,
+                                               size=ref_size,
+                                               condition=condition
+                                               )
+                        self.state.log.add_action(action)
+
+                        if action is not None:
+                            action.actual_value = action._make_object(data)  # TODO
+
                 return
 
             assert False   
@@ -702,8 +737,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             #print "addr " + str(self.state.ip)
             #print utils.full_stack()
             #assert min_size == max_size
-            if self.verbose: self.log("size is symbolic: using the max size")
-            pass
+            l.warning("Concretizing symbolic length. Much sad; think about implementing.")
+            self.state.add_constraints(size == max_size, action=True)
 
         if min_size > self._maximum_symbolic_size:
             assert False
