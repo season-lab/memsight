@@ -7,12 +7,15 @@ class RangeMap(object):
     PAGE_SIZE = 4096
     CUTOFF_RANGE_SIZE = 3
 
-    def __init__(self, large_ranges=[], ranges={}):
+    def __init__(self, large_ranges=[], ranges={}, size=0):
         self._large_ranges = large_ranges
         self._ranges = ranges
         self._cowed = set()
+        self._size = size
 
     def add(self, start, end, obj):
+
+        self._size += 1
 
         begin = int(start / RangeMap.PAGE_SIZE)
         finish = int(math.ceil(end / RangeMap.PAGE_SIZE))
@@ -101,6 +104,8 @@ class RangeMap(object):
 
             index += 1
 
+        self._size -= 1
+
     def replace(self, old, new):
 
         # old must be returned by query()
@@ -142,7 +147,7 @@ class RangeMap(object):
         return False
 
     def copy(self):
-        rm = RangeMap(list(self._large_ranges), dict(self._ranges))
+        rm = RangeMap(list(self._large_ranges), dict(self._ranges), self._size)
         return rm
 
     def merge(self, others, merge_conditions):
@@ -151,5 +156,8 @@ class RangeMap(object):
             self._large_ranges |= o._large_ranges
 
         assert False # ToDo
+
+    def __len__(self):
+        return self._size
 
 
