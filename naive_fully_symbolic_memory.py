@@ -567,7 +567,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         v = f[2][1]
                         range_e = [f[0], f[1]]
 
-                        if not self._symbolic_memory._intersect(range_e[0], range[1], min_addr + k, max_addr + k):
+                        if not self._symbolic_memory._intersect(range_e[0], range_e[1], min_addr + k, max_addr + k):
                             continue
 
                         #if self.verbose: self.log("\tEval: " + str(e) + " with " + str(addr + k))
