@@ -50,8 +50,8 @@ class pitree:
         """
         cloned = pitree(self.__page_size)
         cloned.__pages     = self.__pages.copy()
-        for x in cloned.__pages:
-            x.dirty = False
+#        for x in cloned.__pages:
+#            x.data.dirty = False
         return cloned
 
     def add(self, start, end, item=None):
@@ -62,10 +62,12 @@ class pitree:
         :param item: value associated with key
         """
         assert start <= end
-        start_p = start / self.__page_size
-        end_p   = end   / self.__page_size
+        start_p = start # / self.__page_size
+        end_p   = end   # / self.__page_size
+        p = page
+        self.__pages.addi(start_p, end_p+1, item)
 
     # get iterator for all items in the interval [start, end]
-    def slice(self, start, end):
-        return None
+    def search(self, start, end):
+        return self.__pages.search(start, end+1)
 

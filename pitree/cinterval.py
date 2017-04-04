@@ -19,6 +19,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from numbers import Number
 from collections import namedtuple
 
@@ -132,7 +133,7 @@ class Interval(namedtuple('IntervalBase', ['begin', 'end', 'data'])):
 
     def __eq__(self, other):
         """
-        Same as range_matches() -- Modified
+        Same as range_matches() -- Modified ***CD 170404
         :param other: Interval
         :return: True or False
         :rtype: bool
