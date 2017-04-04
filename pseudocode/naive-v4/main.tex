@@ -1,0 +1,142 @@
+\documentclass{article}
+    % General document formatting
+    \usepackage[margin=0.7in]{geometry}
+    % \usepackage[parfill]{parskip}
+    \usepackage[utf8]{inputenc}
+    
+    % Related to math
+    \usepackage{amsmath,amssymb,amsfonts,amsthm}
+
+    \usepackage{algpseudocode,algorithm}
+
+    \let\emptyset\varnothing
+    
+
+    \makeatletter
+    % use larger font size for line number
+	\algrenewcommand\alglinenumber[1]{\normalsize #1:}
+	% remove number of algorithm from caption
+	\renewcommand\thealgorithm{}
+	\makeatother
+
+	% make font of the caption of algorithm larger
+	\usepackage{caption}
+	\captionsetup[algorithm]{font=normalsize} 
+
+\begin{document}
+
+
+\begin{algorithm}
+  \normalsize
+
+  \caption{Fully symbolic memory: naive implementation}
+  \begin{algorithmic}
+  	\State Immutable objects:
+  	\State $~~M_s~~~~~~~~~~~~~~~~~~~:= \{(e,v)\}$ 
+  	\State $~~~e~~~~~~~~~~~~~~~~~~~\,~:=$ an expression over symbols and concrete values
+  	\State $~~~v~~~~~~~~~~~~~~~~~~~~\,:=$ a 1-byte expression over symbols and concrete values
+  	\State $~~~V~~~~~~~~~~~~~~~~~~~\,:=$ ordered set of $v$
+  	\State $~~~\pi~~~~~~~~~~~~~~~~~~~~\,:=$ set of assumptions
+  	\State $~~~equiv(e, \widetilde{e}, \pi)~~~~~\,:= (e \not = \widetilde{e} \wedge \pi) == UNSAT$ 
+  	\State $~~~disjoint(e, \widetilde{e}, \pi)~~:=  (e = \widetilde{e} \wedge \pi) == UNSAT$ 
+  	\State $~~~intersect(e, \widetilde{e}, \pi)~:=  (e = \widetilde{e} \wedge \pi) == SAT$ 
+
+  \end{algorithmic}
+
+  \bigskip
+  
+  \begin{algorithmic}[1]
+	\Function{store}{$e$, $v$, $size$}:
+		\For {$k = 0~\text{to}~size - 1$} 
+			\State \Call{\_STORE}{$e + k$, $v_k$}
+		\EndFor
+	\EndFunction
+  \end{algorithmic}
+
+  \bigskip
+
+  \begin{algorithmic}[1]
+	\Function{\_store}{$e$, $V$}:
+		
+		\State $a = min(e$)
+		\State $b = max(e$)
+		\State $t \leftarrow t + 1$
+		\State \Call{insert}{($a, b), (e, v, t, true)$)}
+
+	\EndFunction
+  \end{algorithmic}
+
+  \bigskip
+
+  \begin{algorithmic}[1]
+	\Function{insert}{($a, b), (e, v, t, \delta)$)}:
+		
+		\For {$x \in $\Call{search}{$a, b$}:} 
+			\If {$equiv\_sup(e, x(e))$}
+				\State $x(v) \leftarrow v$
+				\State $x(t) \leftarrow t$
+				\State $x(\delta) \leftarrow \delta$
+				\State \Return
+			\EndIf
+			\State \Call{add}{($a, b), (e, v, t, \delta)$)}
+		\EndFor
+
+	\EndFunction
+  \end{algorithmic}
+
+  \bigskip
+
+  \begin{algorithmic}[1]
+	\Function{search}{$a, b$)}:
+		\State \Return $\{x \in M_s~|~x(a,b)~\cap~[a, b] \neq \emptyset\}$
+	\EndFunction
+  \end{algorithmic}
+
+\end{algorithm}
+  
+\begin{algorithm}
+
+  \begin{algorithmic}[1]
+	\Function{load}{$e$, $size$}:
+		\State $V = \left\langle \right\rangle$ 
+		\For {$k = 0~\text{to}~size - 1$} 
+			\State $v_k = $ \Call{\_LOAD}{$e + k$}
+			\State $V = V \cdot v_k$
+		\EndFor
+		\State \Return $V$
+	\EndFunction
+  \end{algorithmic}
+
+  \bigskip
+
+  \begin{algorithmic}[1]
+	\Function{\_load}{e}:
+
+		\State $a = min(e$)
+		\State $b = max(e$)
+
+		\State $P \leftarrow \{ (\widetilde{e}, \widetilde{v}, \widetilde{t}, \widetilde{\delta})~|~(\widetilde{e}, \widetilde{v}, \widetilde{t}, \widetilde{\delta}) \in \Call{search}{a, b}\}$
+
+		\State $P' \leftarrow \Call{sort\_by\_increasing\_timestamp}{P}$
+
+		\State $v \leftarrow \bot$
+
+		\For {$(\widetilde{e}, \widetilde{v}, \widetilde{t}, \widetilde{\delta}) \in P'$} 
+			\State $v \leftarrow ite(e = \widetilde{e}~\wedge~\widetilde{\delta}, \widetilde{v}, v) $
+		\EndFor
+
+		\State \Return $v$
+	\EndFunction
+  \end{algorithmic}
+  
+  \bigskip
+
+  \begin{algorithmic}[1]
+	\Function{merge}{$(S_1, \delta_1), (S_2, \delta_2)$}:
+		\State \Return
+	\EndFunction
+  \end{algorithmic}
+
+\end{algorithm}
+
+\end{document}
