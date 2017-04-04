@@ -32,7 +32,7 @@
   \caption{Fully symbolic memory: naive implementation}
   \begin{algorithmic}
   	\State Immutable objects:
-  	\State $~~M_s~~~~~~~~~~~~~~~~~~~:= \{(e,v)\}$ 
+  	%\State $~~M_s~~~~~~~~~~~~~~~~~~~:= \{(e,v)\}$ 
   	\State $~~~e~~~~~~~~~~~~~~~~~~~\,~:=$ an expression over symbols and concrete values
   	\State $~~~v~~~~~~~~~~~~~~~~~~~~\,:=$ a 1-byte expression over symbols and concrete values
   	\State $~~~V~~~~~~~~~~~~~~~~~~~\,:=$ ordered set of $v$
@@ -71,7 +71,7 @@
   \begin{algorithmic}[1]
 	\Function{insert}{($a, b), (e, v, t, \delta)$)}:
 		
-		\For {$x \in $\Call{search}{$a, b$}:} 
+		\For {$x \in\,$\Call{search}{$a, b$}:} 
 			\If {$equiv\_sup(e, x(e))$}
 				\State $x(v) \leftarrow v$
 				\State $x(t) \leftarrow t$
@@ -132,7 +132,16 @@
 
   \begin{algorithmic}[1]
 	\Function{merge}{$(S_1, \delta_1), (S_2, \delta_2)$}:
-		\State \Return
+
+		\State $M_s \leftarrow $\Call{Interval\_Tree}{~}
+		\For {$x \in S_{1}.M_s$} 
+			\State $x(\delta) = x(\delta) \wedge \delta_1$
+			\State \Call{add}{($x(a), x(b)), x$)}
+		\EndFor
+		\For {$x \in S_{2}.M_s$} 
+			\State $x(\delta) = x(\delta) \wedge \delta_2$
+			\State \Call{add}{($x(a), x(b)), x$)}
+		\EndFor
 	\EndFunction
   \end{algorithmic}
 
