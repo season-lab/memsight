@@ -4,7 +4,7 @@
 pitree: cloneable paged interval tree
 
 Copyright 2017 Camil Demetrescu 
--- based on slightly modified version of chaimleib's IntervalTree
+-- based on modified version of chaimleib's IntervalTree
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
