@@ -379,7 +379,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 data = None
                 for k in range(size):
 
+                    do_implicit_store = True
                     obj = utils.get_unconstrained_bytes(self.state, "bottom", 8, memory=self)
+                    bottom = obj
 
                     if self.verbose: self.log("\tLoading from: " + str(hex(addr + k) if type(addr) in (long, int) else (addr + k)))
 
@@ -391,10 +393,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         v = item[1].get_byte()
                         if min_addr == max_addr: # constant addr
                             obj = v
+                            do_implicit_store = False
                         else:
-
                             n_ite += 1
-
                             obj = self.state.se.If(addr + k == item[0], v, obj)
 
                     else:
@@ -425,12 +426,14 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                     merged = True
 
                             if not merged:
-                                if self.verbose: self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
+                                if self.verbose:
+                                    self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")# " + str(addrs))
+
                                 obj = self.build_ite(addr + k, addrs, v, obj)
                                 addrs = []
 
                         if len(addrs) > 0:
-                            if self.verbose: self.log("\tbuilding ite with " + str(len(addrs)) + " addresses")
+                            if self.verbose: self.log("\tbuilding ite with " + str(len(addrs)) + " addresses") #: "+ str(v))
                             obj = self.build_ite(addr + k, addrs, v, obj)
                             addrs = []
 
@@ -443,7 +446,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         range_e = [f[0], f[1]]
 
                         if self.intersect(e, addr + k, range_e, [min_addr + k, max_addr + k]):
-                            if self.verbose: self.log("\tadding ite with symbolic address")
+                            if self.verbose: self.log("\tadding ite with symbolic address") #: " + str(v))
                             try:
 
                                 n_ite += 1
@@ -454,8 +457,16 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 import pdb
                                 pdb.set_trace()
 
+                    if do_implicit_store:
+                        if self.verbose: self.log("\tDoing an implicit store...")
+                        bottom = MemoryObject(bottom, 0)
+                        if min_addr == max_addr:
+                            self._concrete_memory[min_addr + k] = bottom
+                        else:
+                            self._symbolic_memory.add(min_addr + k, max_addr + k, (addr + k, bottom)) # this is wrong, should be an ITE with all negated cases
+
                     # concat single-byte objs
-                    if self.verbose: self.log("\tappending data") # + str(obj))
+                    if self.verbose: self.log("\tappending data ")# + str(obj))
                     data = self.state.se.Concat(data, obj) if data is not None else obj
 
                 # fix endness
@@ -479,7 +490,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                                condition=condition, fallback=fallback)
                         self.state.log.add_action(action)
 
-                #if self.verbose: self.log("\treturning data: " + str(data))
+                if self.verbose: self.log("\treturning data ")# + str(data))
                 return data
 
             assert False
@@ -550,12 +561,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     if min_addr == max_addr:
                         addr = min_addr
 
-                if self.verbose: self.log("\tTest 1")
-
                 # check permissions
                 self.check_sigsegv_and_refine(addr, min_addr, max_addr, True)
-
-                if self.verbose: self.log("\tTest 2")
 
                 # conflicting symbolic formulas
                 formulas = self._symbolic_memory.query(min_addr, max_addr + size)

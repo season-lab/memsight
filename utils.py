@@ -27,7 +27,7 @@ def parse_args(argv):
     file = argv[1]
     if len(argv) == 3:
         t = int(argv[1])
-        assert t == 0 or t == 1 or t == 2
+        assert t == 0 or t == 1 or t == 2 or t == 3
         file = argv[2]
 
     return t, file
