@@ -3,6 +3,7 @@ import angr
 import sys
 import simuvex
 import pyvex
+import pdb
 
 class Executor(object):
 
@@ -174,7 +175,7 @@ class Executor(object):
 
         if len(pg.active) == 0 and len(found) == 0:
             print "Something went wrong: no active path, but no found path!"
-            #pdb.set_trace() 
+            pdb.set_trace()
             sys.exit(1)
 
         print "One path has reached target instruction: " + str(hex(found[0].state.ip.args[0]))
