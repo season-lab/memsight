@@ -21,7 +21,6 @@ limitations under the License.
 """
 
 from numbers import Number
-#from collections import namedtuple
 from namedlist import namedlist
 
 # noinspection PyBroadException
