@@ -10,6 +10,8 @@ def main(args):
     t.add(1250, 2913, "two")
     t.add(2999, 4600, "three")
     print t.search(123, 2400)
+    t.search(123, 2400).pop().data = "changed!!"
+    print t.search(123, 2400)
     r = t.clone()
     print r
     return 0
