@@ -119,6 +119,7 @@
 		\State $P' \leftarrow \Call{sort\_by\_increasing\_timestamp}{P}$
 
 		\State $v \leftarrow \bot$
+		\State \Call{add}{($a, b), (e, v, 0, true)$} \Comment{implicit store}
 
 		\For {$(\widetilde{e}, \widetilde{v}, \widetilde{t}, \widetilde{\delta}) \in P'$} 
 			\State $v \leftarrow ite(e = \widetilde{e}~\wedge~\widetilde{\delta}, \widetilde{v}, v) $
