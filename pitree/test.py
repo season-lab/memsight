@@ -14,9 +14,10 @@ def main(args):
     for i in r.search(123, 2400):
         r.update_item(i, i.data + "*")
         print i.begin, " ", i.end, " ", i.data
-    print r
-    for i in r.search(0,sys.maxint):
-        print i
+    print "t"
+    for i in t.search(0,sys.maxint): print i
+    print "r"
+    for i in r.search(0,sys.maxint): print i
     return 0
 
 if __name__ == "__main__":

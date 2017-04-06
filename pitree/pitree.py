@@ -41,6 +41,7 @@ class page:
 
     def _copy_on_write(self):
         if (self.lazycopy):
+            print "*** page copy on write: " + str(self)
             self.lazycopy = False
             self.tree = self.tree.copy() # this clones Interval objects in the tree
         
@@ -125,12 +126,12 @@ class pitree:
         :param new_item: new value for interval
         """
         self._copy_on_write()
-        # clone the page the interval belongs to
-        i.data = new_item
+        # clone the page the interval belongs to, if marked for copy-on-write
         begin_p = i.begin / self.__page_size
         end_p   = i.end   / self.__page_size
         p = self.__lookup[(begin_p, end_p+1)]
         p._copy_on_write()
+        i.data = new_item
 
     def _copy_on_write(self):
         """
@@ -144,5 +145,5 @@ class pitree:
                 n = page(p.begin, p.end, p.tree, True)
                 lookup[(p.begin, p.end+1)] = n
                 pages.addi(n.begin, n.end+1, n)
-            self.pages  = pages
-            self.lookup = lookup
+            self.__pages  = pages
+            self.__lookup = lookup
