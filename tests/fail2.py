@@ -13,7 +13,7 @@ def do_start(state):
 	params['edi'] = state.regs.edi
 	return params
 
-def do_end(state, params):
+def do_end(state, params, pg):
 	sol = state.se.any_n_int(params['edi'], 5)
 	for s in sol: assert s < 1000
 	print "EDI: " + str(sol)

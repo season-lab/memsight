@@ -14,7 +14,7 @@ def get_target_addrs(fname):
         print "\t        avoid()    => [int, ...]"
         print "\t          end()    => [int, ...]"
         print "\tdo_start(state)    => o"
-        print "\t  do_end(state, o) => None"
+        print "\t  do_end(state, o, pg) => None"
         sys.exit(1)
 
     start = config.start()

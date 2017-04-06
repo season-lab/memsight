@@ -71,17 +71,16 @@ class Executor(object):
 
             print       
 
-    def run(self, mem_memory = None, reg_memory = None):
+    def _common_run(self, mem_memory = None, reg_memory = None):
 
         plugins = {}
         if mem_memory is not None:
             plugins['memory'] = mem_memory
-            mem_memory.verbose = False
         if reg_memory is not None:
             plugins['registers'] = reg_memory
-            reg_memory.verbose = False
 
-        add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY}
+        add_options = {None}
+        #add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY}
         state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, add_options=add_options, plugins=plugins)
 
         data = self.config.do_start(state)
@@ -92,6 +91,14 @@ class Executor(object):
 
         #print "Veritesting: " + str(veritesting)
         pg = self.project.factory.path_group(state, veritesting=veritesting)
+
+        return pg, data
+
+    def run(self, mem_memory = None, reg_memory = None):
+
+        mem_memory.verbose = False
+        reg_memory.verbose = False
+        pg, data = self._common_run(mem_memory, reg_memory)
 
         while len(pg.active) > 0:
             print pg
@@ -115,28 +122,7 @@ class Executor(object):
 
     def explore(self, mem_memory = None, reg_memory = None):
 
-        plugins = {}
-        if mem_memory is not None:
-            plugins['memory'] = mem_memory
-        if reg_memory is not None:
-            plugins['registers'] = reg_memory
-
-        #logging.getLogger('simuvex').setLevel(logging.DEBUG)
-        #logging.getLogger('claripy').setLevel(logging.DEBUG)
-        #logging.getLogger('angr.analyses.veritesting').setLevel(logging.DEBUG)
-
-        add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY}
-        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, add_options=add_options, plugins=plugins)
-
-        data = self.config.do_start(state)
-
-        veritesting = False
-        if 'veritesting' in data:
-            veritesting = data['veritesting']
-
-        print "Veritesting: " + str(veritesting)
-
-        pg = self.project.factory.path_group(state, veritesting=veritesting)
+        pg, data = self._common_run(mem_memory, reg_memory)
 
         avoided = []
         found = []
