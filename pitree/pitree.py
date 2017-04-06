@@ -19,7 +19,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from cintervaltree import IntervalTree # use custom interval tree
+from cintervaltree import Interval, IntervalTree # use custom interval tree
     
 
 # ----------------------------------------------------------------------
@@ -34,16 +34,41 @@ class page:
         self.begin    = begin
         self.end      = end
         self.lazycopy = lazycopy
+        self.lookup   = dict()
         if tree is None:
             self.tree = IntervalTree()
         else: 
             self.tree = tree
+
+    def add(self, begin, end, item=None):
+        """
+        Insert new interval with key [begin, end] and value item.
+        :param begin: interval begin point (key)
+        :param end: interval end point (key)
+        :param item: value associated with key
+        """
+        self._copy_on_write()
+        i = Interval(begin, end+1, item)
+        self.tree.add(i)
+        self.lookup[i] = i
+
+    def update_item(self, i, new_item):
+        """
+        Update item field of interval in the tree
+        :param i: object of type Interval previously returned by search
+        :param new_item: new value for interval
+        """
+        self._copy_on_write()
+        self.lookup[i].data = new_item
 
     def _copy_on_write(self):
         if (self.lazycopy):
             print "*** page copy on write: " + str(self)
             self.lazycopy = False
             self.tree = self.tree.copy() # this clones Interval objects in the tree
+            self.lookup.clear()
+            for i in self.tree: 
+                self.lookup[i] = i
         
     def __repr__(self):
         return "[begin="     + str(self.begin)      + \
@@ -101,8 +126,7 @@ class pitree:
             p = page(begin_p, end_p)
             self.__lookup[(begin_p, end_p+1)] = p
             self.__pages.addi(p.begin, p.end+1, p)
-        p._copy_on_write()
-        p.tree.addi(begin, end+1, item)
+        p.add(begin, end+1, item)
 
     def search(self, begin, end):
         """
@@ -126,12 +150,10 @@ class pitree:
         :param new_item: new value for interval
         """
         self._copy_on_write()
-        # clone the page the interval belongs to, if marked for copy-on-write
         begin_p = i.begin / self.__page_size
         end_p   = i.end   / self.__page_size
         p = self.__lookup[(begin_p, end_p+1)]
-        p._copy_on_write()
-        i.data = new_item
+        p.update_item(i, new_item)
 
     def _copy_on_write(self):
         """
