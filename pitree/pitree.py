@@ -65,10 +65,10 @@ class pitree:
         self.__page_size = page_size
 
     def __repr__(self):
-        return "pages="     + str(self.__pages)     + ",\n\n" + \
-               "lookup="    + str(self.__lookup)    + ",\n\n" + \
-               "lazycopy="  + str(self.__lazycopy)  + ",\n\n" + \
-               "page_size=" + str(self.__page_size)
+        return "---\npages=" + str(self.__pages)     + "\n\n" + \
+               "lookup="     + str(self.__lookup)    + "\n\n" + \
+               "lazycopy="   + str(self.__lazycopy)  + "\n"   + \
+               "page_size="  + str(self.__page_size) + "\n---"
 
     __str__ = __repr__
 
@@ -93,7 +93,7 @@ class pitree:
         assert begin <= end
         begin_p = begin / self.__page_size
         end_p   = end   / self.__page_size
-        _copy_on_write(self)
+        self._copy_on_write()
         try:
             p = self.__lookup[(begin_p, end_p+1)]
         except KeyError:
@@ -124,7 +124,7 @@ class pitree:
         :param i: object of type Interval previously returned by search
         :param new_item: new value for interval
         """
-        _copy_on_write(self)
+        self._copy_on_write()
         # clone the page the interval belongs to
         i.data = new_item
         begin_p = i.begin / self.__page_size
@@ -136,8 +136,8 @@ class pitree:
         """
         Clone pages and lookup data structures
         """
-        if (self.lazycopy):
-            self.lazycopy = False
+        if (self.__lazycopy):
+            self.__lazycopy = False
             pages  = IntervalTree()
             lookup = dict()
             for p in self.__lookup.values():
