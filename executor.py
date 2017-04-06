@@ -1,9 +1,12 @@
+import resource
+
 import executor_config
 import angr
 import sys
 import simuvex
 import pyvex
 import pdb
+import logging
 
 class Executor(object):
 
@@ -78,11 +81,17 @@ class Executor(object):
             plugins['registers'] = reg_memory
             reg_memory.verbose = False
 
-        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, plugins=plugins)
+        add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY}
+        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, add_options=add_options, plugins=plugins)
 
         data = self.config.do_start(state)
 
-        pg = self.project.factory.path_group(state, veritesting=False)
+        veritesting = False
+        if 'veritesting' in data:
+            veritesting = data['veritesting']
+
+        #print "Veritesting: " + str(veritesting)
+        pg = self.project.factory.path_group(state, veritesting=veritesting)
 
         while len(pg.active) > 0:
             print pg
@@ -96,8 +105,12 @@ class Executor(object):
                 print "Reached the target"
                 print pg
                 state = pg.found[0].state
-                self.config.do_end(state, data)
+                self.config.do_end(state, data, pg)
                 break
+
+        assert len(pg.found) > 0
+        print
+        print "Memory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
 
 
     def explore(self, mem_memory = None, reg_memory = None):
@@ -110,12 +123,20 @@ class Executor(object):
 
         #logging.getLogger('simuvex').setLevel(logging.DEBUG)
         #logging.getLogger('claripy').setLevel(logging.DEBUG)
+        #logging.getLogger('angr.analyses.veritesting').setLevel(logging.DEBUG)
 
-        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, plugins=plugins)
+        add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY}
+        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, add_options=add_options, plugins=plugins)
 
         data = self.config.do_start(state)
 
-        pg = self.project.factory.path_group(state, veritesting=False)
+        veritesting = False
+        if 'veritesting' in data:
+            veritesting = data['veritesting']
+
+        print "Veritesting: " + str(veritesting)
+
+        pg = self.project.factory.path_group(state, veritesting=veritesting)
 
         avoided = []
         found = []
@@ -154,7 +175,10 @@ class Executor(object):
             print pg
 
             print "# Start of execution"
-            pg.step(opt_level=1, num_inst=num_inst, )  # selector_func = lambda x: x is path
+            if not veritesting:
+                pg.step(opt_level=1, num_inst=num_inst, )  # selector_func = lambda x: x is path
+            else:
+                pg.step()
             print "# End of execution\n"
 
             remove = []
@@ -176,11 +200,15 @@ class Executor(object):
         if len(pg.active) == 0 and len(found) == 0:
             print "Something went wrong: no active path, but no found path!"
             pdb.set_trace()
+            assert False
             sys.exit(1)
 
         print "One path has reached target instruction: " + str(hex(found[0].state.ip.args[0]))
         state = found[0].state
-        self.config.do_end(state, data)
+        self.config.do_end(state, data, pg)
         print "Constraints:"
         self._print_constraints(state.se.constraints, None)
         #pdb.set_trace()
+
+        print
+        print "Memory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
