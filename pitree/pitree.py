@@ -35,7 +35,7 @@ class page:
         self.end      = end
         self.lazycopy = lazycopy
         if tree is None:
-            self.tree  = IntervalTree()
+            self.tree = IntervalTree()
         else: 
             self.tree = tree
 
@@ -58,24 +58,29 @@ class page:
 # ----------------------------------------------------------------------
 class pitree:
 
-    def __init__(self, page_size = 1024):
+    def __init__(self, page_size = 1024, lazycopy=False):
         self.__pages     = IntervalTree()
         self.__lookup    = dict()
+        self.__lazycopy  = lazycopy
         self.__page_size = page_size
 
     def __repr__(self):
-        return str(self.__pages) + "\n\n" + str(self.__lookup) + "\n\n" + str(self.__page_size)
+        return "pages="     + str(self.__pages)     + ",\n\n" + \
+               "lookup="    + str(self.__lookup)    + ",\n\n" + \
+               "lazycopy="  + str(self.__lazycopy)  + ",\n\n" + \
+               "page_size=" + str(self.__page_size)
+
+    __str__ = __repr__
 
     def copy(self):
         """
-        Lazy copy of the tree
+        Lazy copy of the tree - O(1)
         :rtype: pitree
         """
-        cloned = pitree(self.__page_size)
-        for p in self.__lookup.values():
-            n = page(p.begin, p.end, p.tree, True)
-            cloned.__lookup[(p.begin, p.end+1)] = n
-            cloned.__pages.addi(n.begin, n.end+1, n)
+        self.__lazycopy = True
+        cloned = pitree(self.__page_size, True)
+        cloned.__pages  = self.__pages
+        cloned.__lookup = self.__lookup
         return cloned
 
     def add(self, begin, end, item=None):
@@ -88,6 +93,7 @@ class pitree:
         assert begin <= end
         begin_p = begin / self.__page_size
         end_p   = end   / self.__page_size
+        _copy_on_write(self)
         try:
             p = self.__lookup[(begin_p, end_p+1)]
         except KeyError:
@@ -118,11 +124,25 @@ class pitree:
         :param i: object of type Interval previously returned by search
         :param new_item: new value for interval
         """
+        _copy_on_write(self)
+        # clone the page the interval belongs to
         i.data = new_item
         begin_p = i.begin / self.__page_size
         end_p   = i.end   / self.__page_size
         p = self.__lookup[(begin_p, end_p+1)]
         p._copy_on_write()
 
-    __str__ = __repr__
-
+    def _copy_on_write(self):
+        """
+        Clone pages and lookup data structures
+        """
+        if (self.lazycopy):
+            self.lazycopy = False
+            pages  = IntervalTree()
+            lookup = dict()
+            for p in self.__lookup.values():
+                n = page(p.begin, p.end, p.tree, True)
+                lookup[(p.begin, p.end+1)] = n
+                pages.addi(n.begin, n.end+1, n)
+            self.pages  = pages
+            self.lookup = lookup
