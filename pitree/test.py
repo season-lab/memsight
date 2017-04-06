@@ -29,7 +29,7 @@ def main(args):
         print i.begin, " ", i.end, " ", i.data
 
     print "update again t:"
-    for i in t.search(4600, 4600):
+    for i in t.search(4600, 4601):
         i = t.update_item(i, i.data + "###")
         print i.begin, " ", i.end, " ", i.data
 

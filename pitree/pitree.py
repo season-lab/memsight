@@ -122,12 +122,12 @@ class pitree:
 
     def add(self, begin, end, item=None):
         """
-        Insert new interval with key [begin, end] and value item.
+        Insert new interval with key [begin, end) and value item.
         :param begin: interval begin point (key)
         :param end: interval end point (key)
         :param item: value associated with key
         """
-        assert begin <= end
+        assert begin < end
         begin_p = begin / self.__page_size
         end_p   = end   / self.__page_size + 1
         self._copy_on_write()
@@ -141,12 +141,12 @@ class pitree:
 
     def search(self, begin, end):
         """
-        Get all intervals overlapping with the closed interval [begin, end]
+        Get all intervals overlapping with the interval [begin, end)
         :param begin: interval begin point (key)
         :param end: interval end point (key)
         :rtype: set of objects of type Interval (fields: begin, end, data)
         """
-        assert begin <= end
+        assert begin < end
         begin_p = begin / self.__page_size
         end_p   = end   / self.__page_size + 1
         res = set()
