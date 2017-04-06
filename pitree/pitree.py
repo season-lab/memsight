@@ -137,14 +137,14 @@ class pitree:
             p = page(begin_p, end_p)
             self.__lookup[(begin_p, end_p)] = p
             self.__pages.addi(p.begin, p.end, p)
-        p.add(begin, end+1, item)
+        p.add(begin, end, item)
 
     def search(self, begin, end):
         """
         Get all intervals overlapping with the closed interval [begin, end]
         :param begin: interval begin point (key)
         :param end: interval end point (key)
-        :rtype: set of objects of type Interval (fields: begin, end+1, data)
+        :rtype: set of objects of type Interval (fields: begin, end, data)
         """
         assert begin <= end
         begin_p = begin / self.__page_size
