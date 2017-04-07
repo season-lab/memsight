@@ -108,6 +108,12 @@ class pitree:
 
     __str__ = __repr__
 
+    @classmethod
+    def get_elements(cls):
+        handler = lambda d: set(d.__pages, d.__lookup, d.__lazycopy, d.__page_size)
+        yield pitree: handler
+        yield IntervalTree: IntervalTree.get_elements
+
     def copy(self):
         """
         Lazy copy of the tree - O(1)
