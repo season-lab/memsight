@@ -129,9 +129,9 @@ class pitree:
             if (s.num_intervals > max_intervals): max_intervals = s.num_intervals
         print "[pitree] num pitrees="       + str(n)               + \
                      ", max num pages="     + str(max_pages)       + \
-                     ", max ints per page=" + str(max_intervals)   + \
+                     ", max ints per tree=" + str(max_intervals)   + \
                      ", avg num pages="     + str(tot_pages/n)     + \
-                     ", avg ints per page=" + str(tot_intervals/n)
+                     ", avg ints per tree=" + str(tot_intervals/n)
 
     def copy(self):
         """
