@@ -924,12 +924,39 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         assert len(merge_conditions) == 1 + len(others)
         assert len(others) == 1 # ToDo
 
-        self._merge(others[0], merge_conditions)
+        self._merge(others[0], merge_conditions, common_ancestor)
 
         return 1
 
     @profile
-    def _merge_symbolic_addresses(self, other, merge_conditions, verbose=False):
-        pass
+    def _merge(self, other, merge_conditions, common_ancestor, verbose=False):
 
-    
+        missing_self = set(self._initializable._keys) - set(other._initializable._keys)
+        for index in missing_self:
+            self._load_init_data(index * 0x1000, 1)
+
+        assert len(set(self._initializable._keys) - set(other._initializable._keys)) == 0
+
+        missing_other = set(other._initializable._keys) - set(self._initializable._keys)
+        for index in missing_other:
+            other._load_init_data(index * 0x1000, 1)
+
+        assert len(set(other._initializable._keys) - set(self._initializable._keys)) == 0
+
+        ancestor_timestamp = common_ancestor.timestamp
+        ancestor_timestamp_implicit = common_ancestor.timestamp_implicit
+
+        P = self._symbolic_memory.search(0, sys.maxint)
+        for p in P:
+            if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, claripy.And(p.data.guard, merge_conditions[0]))
+                self._symbolic_memory.update_item(p, i)
+
+        P = other._symbolic_memory.search(0, sys.maxint)
+        for p in P:
+            if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, claripy.And(p.data.guard, merge_conditions[1]))
+                self._symbolic_memory.add(p.begin, p.end, i)
+
+        self.timestamp = max(self.timestamp, other.timestamp)
+        self.timestamp_implicit = min(self.timestamp_implicit, other.timestamp_implicit)

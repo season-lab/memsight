@@ -86,21 +86,34 @@ class Executor(object):
         data = self.config.do_start(state)
 
         veritesting = False
+        _boundaries = []
         if 'veritesting' in data:
             veritesting = data['veritesting']
+            _boundaries += self.end
+            print "Veritesting: " + str(veritesting)
 
-        #print "Veritesting: " + str(veritesting)
-        pg = self.project.factory.path_group(state, veritesting=veritesting)
+        max_rounds = None
+        if 'max_rounds' in data:
+            max_rounds = data['max_rounds']
 
-        return pg, data
+        pg = self.project.factory.path_group(state, veritesting=veritesting, veritesting_options={'boundaries': _boundaries})
+
+        return pg, data, veritesting, max_rounds
 
     def run(self, mem_memory = None, reg_memory = None):
 
         mem_memory.verbose = False
         reg_memory.verbose = False
-        pg, data = self._common_run(mem_memory, reg_memory)
+        pg, data, veritesting, max_rounds = self._common_run(mem_memory, reg_memory)
 
+        k = 0
         while len(pg.active) > 0:
+
+            if max_rounds is not None and k >= max_rounds:
+                break
+
+            k += 1
+
             print pg
 
             # step 1 basic block for each active path
@@ -109,11 +122,13 @@ class Executor(object):
 
             # Bazinga!
             if len(pg.found) > 0:
-                print "Reached the target"
-                print pg
-                state = pg.found[0].state
-                self.config.do_end(state, data, pg)
                 break
+
+        if len(pg.found) > 0:
+            print "Reached the target"
+            print pg
+            state = pg.found[0].state
+            self.config.do_end(state, data, pg)
 
         assert len(pg.found) > 0
         print
@@ -122,13 +137,21 @@ class Executor(object):
 
     def explore(self, mem_memory = None, reg_memory = None):
 
-        pg, data = self._common_run(mem_memory, reg_memory)
+        pg, data, veritesting, max_rounds = self._common_run(mem_memory, reg_memory)
 
         avoided = []
         found = []
         num_inst=1
 
+        k = 0
+
         while len(pg.active) > 0 and len(found) == 0:
+
+            if max_rounds is not None and k >= max_rounds:
+                found += pg.active
+                break
+
+            k += 1
 
             parent_state = pg.active[0].history._parent.state if pg.active[0].history._parent is not None else None
 
