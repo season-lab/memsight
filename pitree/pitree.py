@@ -94,44 +94,54 @@ class page:
 # ----------------------------------------------------------------------
 class pitree:
 
-    stats = collections.namedtuple('stats', 'num_pages num_intervals')
+    stats = collections.namedtuple('stats', 'num_pages num_intervals num_1_intervals')
 
     def __init__(self, page_size = 2048):
-        self.__pages     = IntervalTree()
-        self.__lookup    = dict()
-        self.__lazycopy  = False
-        self.__page_size = page_size
-        self.__num_inter = 0
+        self.__pages       = IntervalTree()
+        self.__lookup      = dict()
+        self.__lazycopy    = False
+        self.__page_size   = page_size
+        self.__num_inter   = 0
+        self.__num_1_inter = 0
 
     def __repr__(self):
-        return "---\npages=" + str(self.__pages)     + "\n\n" + \
-               "lookup="     + str(self.__lookup)    + "\n\n" + \
-               "lazycopy="   + str(self.__lazycopy)  + "\n"   + \
-               "page_size="  + str(self.__page_size) + "\n"   + \
-               "num inter="  + str(self.__num_inter) + "\n---"
+        return "---\npages="  + str(self.__pages)       + "\n\n"  + \
+               "lookup="      + str(self.__lookup)      + "\n\n"  + \
+               "lazycopy="    + str(self.__lazycopy)    + "\n"    + \
+               "page_size="   + str(self.__page_size)   + "\n"    + \
+               "num inter="   + str(self.__num_inter)   + "\n---" + \
+               "num 1-inter=" + str(self.__num_1_inter) + "\n---"
 
     __str__ = __repr__
 
     def get_stats(self):
-        return pitree.stats(num_pages=len(self.__lookup), num_intervals=self.__num_inter)
+        return pitree.stats(num_pages       = len(self.__lookup),  \
+                            num_intervals   = self.__num_inter,    \
+                            num_1_intervals = self.__num_1_inter)
 
     @classmethod
     def print_stats(cls, stats_list):
-        max_pages     = 0
-        max_intervals = 0
-        tot_pages     = 0
-        tot_intervals = 0
-        n             = len(stats_list)
+        max_pages       = 0
+        max_intervals   = 0
+        max_1_intervals = 0
+        tot_pages       = 0
+        tot_intervals   = 0
+        tot_1_intervals = 0
+        n               = len(stats_list)
         for s in stats_list:
-            tot_pages     += s.num_pages
-            tot_intervals += s.num_intervals
-            if (s.num_pages     > max_pages):     max_pages     = s.num_pages
-            if (s.num_intervals > max_intervals): max_intervals = s.num_intervals
-        print "[pitree] num pitrees="       + str(n)               + \
-                     ", max num pages="     + str(max_pages)       + \
-                     ", max ints per tree=" + str(max_intervals)   + \
-                     ", avg num pages="     + str(tot_pages/n)     + \
-                     ", avg ints per tree=" + str(tot_intervals/n)
+            tot_pages       += s.num_pages
+            tot_intervals   += s.num_intervals
+            tot_1_intervals += s.num_1_intervals
+            if (s.num_pages       > max_pages):       max_pages       = s.num_pages
+            if (s.num_intervals   > max_intervals):   max_intervals   = s.num_intervals
+            if (s.num_1_intervals > max_1_intervals): max_1_intervals = s.num_1_intervals
+        print "[pitree] num pitrees="         + str(n)                 + \
+                     ", max num pages="       + str(max_pages)         + \
+                     ", max ints per tree="   + str(max_intervals)     + \
+                     ", max 1-ints per tree=" + str(max_1_intervals)   + \
+                     ", avg num pages="       + str(tot_pages/n)       + \
+                     ", avg ints per tree="   + str(tot_intervals/n)   + \
+                     ", avg 1-ints per tree=" + str(tot_1_intervals/n)
 
     def copy(self):
         """
@@ -140,10 +150,11 @@ class pitree:
         """
         self.__lazycopy = True
         cloned = pitree(self.__page_size)
-        cloned.__lazycopy  = True
-        cloned.__pages     = self.__pages
-        cloned.__lookup    = self.__lookup
-        cloned.__num_inter = self.__num_inter
+        cloned.__lazycopy    = True
+        cloned.__pages       = self.__pages
+        cloned.__lookup      = self.__lookup
+        cloned.__num_inter   = self.__num_inter
+        cloned.__num_1_inter = self.__num_1_inter
         return cloned
 
     def add(self, begin, end, item=None):
@@ -165,6 +176,8 @@ class pitree:
             self.__pages.addi(p.begin, p.end, p)
         p.add(begin, end, item)
         self.__num_inter = self.__num_inter + 1
+        if (begin + 1 == end):
+            self.__num_1_inter = self.__num_1_inter + 1
 
     def search(self, begin, end):
         """
