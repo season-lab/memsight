@@ -35,7 +35,7 @@ def update_counter(elapsed, f):
         time_profile[f][1] += elapsed
     
     count_ops += 1
-    if count_ops > 0 and count_ops % 1000 == 0:
+    if count_ops > 0 and count_ops % 10000 == 0:
         print
         print "Profiling stats:" # at depth=" + str(depth) + ":"
         for ff in time_profile:
@@ -918,7 +918,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         if self.verbose: self.log("Merging memories of " + str(len(others) + 1) + " states")
         assert len(merge_conditions) == 1 + len(others)
-        assert len(others) == 1 # ToDo
+        assert len(others) == 1  # ToDo
 
         self._merge(others[0], merge_conditions, common_ancestor)
 
@@ -927,32 +927,39 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     @profile
     def _merge(self, other, merge_conditions, common_ancestor, verbose=False):
 
-        missing_self = set(self._initializable._keys) - set(other._initializable._keys)
-        for index in missing_self:
-            self._load_init_data(index * 0x1000, 1)
+        try:
 
-        assert len(set(self._initializable._keys) - set(other._initializable._keys)) == 0
+            missing_self = set(self._initializable._keys) - set(other._initializable._keys)
+            for index in missing_self:
+                self._load_init_data(index * 0x1000, 1)
 
-        missing_other = set(other._initializable._keys) - set(self._initializable._keys)
-        for index in missing_other:
-            other._load_init_data(index * 0x1000, 1)
+            assert len(set(self._initializable._keys) - set(other._initializable._keys)) == 0
 
-        assert len(set(other._initializable._keys) - set(self._initializable._keys)) == 0
+            missing_other = set(other._initializable._keys) - set(self._initializable._keys)
+            for index in missing_other:
+                other._load_init_data(index * 0x1000, 1)
 
-        ancestor_timestamp = common_ancestor.timestamp
-        ancestor_timestamp_implicit = common_ancestor.timestamp_implicit
+            assert len(set(other._initializable._keys) - set(self._initializable._keys)) == 0
 
-        P = self._symbolic_memory.search(0, sys.maxint)
-        for p in P:
-            if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
-                i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, claripy.And(p.data.guard, merge_conditions[0]))
-                self._symbolic_memory.update_item(p, i)
+            ancestor_timestamp = common_ancestor.timestamp
+            ancestor_timestamp_implicit = common_ancestor.timestamp_implicit
 
-        P = other._symbolic_memory.search(0, sys.maxint)
-        for p in P:
-            if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
-                i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, claripy.And(p.data.guard, merge_conditions[1]))
-                self._symbolic_memory.add(p.begin, p.end, i)
+            P = self._symbolic_memory.search(0, sys.maxint)
+            for p in P:
+                if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                    guard = claripy.And(p.data.guard, merge_conditions[0]) if p.data.guard is not None else merge_conditions[0]
+                    i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, guard)
+                    self._symbolic_memory.update_item(p, i)
 
-        self.timestamp = max(self.timestamp, other.timestamp)
-        self.timestamp_implicit = min(self.timestamp_implicit, other.timestamp_implicit)
+            P = other._symbolic_memory.search(0, sys.maxint)
+            for p in P:
+                if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                    guard = claripy.And(p.data.guard, merge_conditions[0]) if p.data.guard is not None else merge_conditions[1]
+                    i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, guard)
+                    self._symbolic_memory.add(p.begin, p.end, i)
+
+            self.timestamp = max(self.timestamp, other.timestamp)
+            self.timestamp_implicit = min(self.timestamp_implicit, other.timestamp_implicit)
+
+        except Exception as e:
+            pdb.set_trace()
