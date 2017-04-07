@@ -9,7 +9,6 @@ import pyvex
 import traceback
 import bisect
 import cffi
-from intervaltree import intervaltree
 
 import utils
 import resource
