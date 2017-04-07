@@ -67,14 +67,11 @@ def print_profiling_stats(depth, pg):
             continue
         print "\tStash " + str(stash) + ":"
         for p in pg.stashes[stash]:
-            print "\t\t" + str(len(p.state.memory._concrete_memory)) + ' ' + str(len(p.state.memory._symbolic_memory)) 
+            #print "\t\t" + str(len(p.state.memory._concrete_memory)) + ' ' + str(len(p.state.memory._symbolic_memory))
             count_leaves += 1
-            count_bytes += len(p.state.memory._concrete_memory)
-            count_formulas += len(p.state.memory._symbolic_memory)
 
     print
     print "\tNumber of leaves: \t" + str(count_leaves)
-    print "\tLeaves: overall indexed concrete bytes: \t" + str(count_bytes)
     print "\tLeaves: overall indexed formulas: \t" + str(count_formulas)
     print "\tNumber of states explored: \t" + str(time_profile['__init__'][0]) #angr.path.count_paths)
     print "\tNumber of generated ITE: \t" + str(n_ite)
