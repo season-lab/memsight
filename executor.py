@@ -1,9 +1,12 @@
+import resource
+
 import executor_config
 import angr
 import sys
 import simuvex
 import pyvex
 import pdb
+import logging
 
 class Executor(object):
 
@@ -68,23 +71,49 @@ class Executor(object):
 
             print       
 
-    def run(self, mem_memory = None, reg_memory = None):
+    def _common_run(self, mem_memory = None, reg_memory = None):
 
         plugins = {}
         if mem_memory is not None:
             plugins['memory'] = mem_memory
-            mem_memory.verbose = False
         if reg_memory is not None:
             plugins['registers'] = reg_memory
-            reg_memory.verbose = False
 
-        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, plugins=plugins)
+        add_options = {None}
+        #add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY}
+        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, add_options=add_options, plugins=plugins)
 
         data = self.config.do_start(state)
 
-        pg = self.project.factory.path_group(state, veritesting=False)
+        veritesting = False
+        _boundaries = []
+        if 'veritesting' in data:
+            veritesting = data['veritesting']
+            _boundaries += self.end
+            print "Veritesting: " + str(veritesting)
 
+        max_rounds = None
+        if 'max_rounds' in data:
+            max_rounds = data['max_rounds']
+
+        pg = self.project.factory.path_group(state, veritesting=veritesting, veritesting_options={'boundaries': _boundaries})
+
+        return pg, data, veritesting, max_rounds
+
+    def run(self, mem_memory = None, reg_memory = None):
+
+        mem_memory.verbose = False
+        reg_memory.verbose = False
+        pg, data, veritesting, max_rounds = self._common_run(mem_memory, reg_memory)
+
+        k = 0
         while len(pg.active) > 0:
+
+            if max_rounds is not None and k >= max_rounds:
+                break
+
+            k += 1
+
             print pg
 
             # step 1 basic block for each active path
@@ -93,35 +122,36 @@ class Executor(object):
 
             # Bazinga!
             if len(pg.found) > 0:
-                print "Reached the target"
-                print pg
-                state = pg.found[0].state
-                self.config.do_end(state, data)
                 break
+
+        if len(pg.found) > 0:
+            print "Reached the target"
+            print pg
+            state = pg.found[0].state
+            self.config.do_end(state, data, pg)
+
+        assert len(pg.found) > 0
+        print
+        print "Memory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
 
 
     def explore(self, mem_memory = None, reg_memory = None):
 
-        plugins = {}
-        if mem_memory is not None:
-            plugins['memory'] = mem_memory
-        if reg_memory is not None:
-            plugins['registers'] = reg_memory
-
-        #logging.getLogger('simuvex').setLevel(logging.DEBUG)
-        #logging.getLogger('claripy').setLevel(logging.DEBUG)
-
-        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, plugins=plugins)
-
-        data = self.config.do_start(state)
-
-        pg = self.project.factory.path_group(state, veritesting=False)
+        pg, data, veritesting, max_rounds = self._common_run(mem_memory, reg_memory)
 
         avoided = []
         found = []
         num_inst=1
 
+        k = 0
+
         while len(pg.active) > 0 and len(found) == 0:
+
+            if max_rounds is not None and k >= max_rounds:
+                found += pg.active
+                break
+
+            k += 1
 
             parent_state = pg.active[0].history._parent.state if pg.active[0].history._parent is not None else None
 
@@ -154,7 +184,10 @@ class Executor(object):
             print pg
 
             print "# Start of execution"
-            pg.step(opt_level=1, num_inst=num_inst, )  # selector_func = lambda x: x is path
+            if not veritesting:
+                pg.step(opt_level=1, num_inst=num_inst, )  # selector_func = lambda x: x is path
+            else:
+                pg.step()
             print "# End of execution\n"
 
             remove = []
@@ -176,11 +209,15 @@ class Executor(object):
         if len(pg.active) == 0 and len(found) == 0:
             print "Something went wrong: no active path, but no found path!"
             pdb.set_trace()
+            assert False
             sys.exit(1)
 
         print "One path has reached target instruction: " + str(hex(found[0].state.ip.args[0]))
         state = found[0].state
-        self.config.do_end(state, data)
+        self.config.do_end(state, data, pg)
         print "Constraints:"
         self._print_constraints(state.se.constraints, None)
         #pdb.set_trace()
+
+        print
+        print "Memory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"

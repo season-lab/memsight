@@ -14,7 +14,7 @@ def do_start(state):
 	params['edi'] = state.regs.edi
 	return params
 
-def do_end(state, params):
+def do_end(state, params, pg):
 
 	expected_sol = [0, 1]
 	o = state.se.Concat(params['edi'], params['esi'])

@@ -13,7 +13,7 @@ def do_start(state):
 	params['esi'] = state.regs.esi
 	return params
 
-def do_end(state, params):
+def do_end(state, params, pg):
 	o = state.se.Concat(params['edi'], params['esi'])
 	sol = state.se.any_n_int(o, 5)
 	import ctypes

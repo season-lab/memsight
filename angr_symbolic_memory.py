@@ -71,3 +71,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     def map_region(self, addr, length, permissions):
         self._angr_memory.map_region(addr, length, permissions)
+
+    def merge(self, others, merge_conditions, common_ancestor=None):
+        res = self._angr_memory.merge(others, merge_conditions, common_ancestor)
+        return res
+
+    @property
+    def read_strategies(self):
+        return self._angr_memory.read_strategies
+
+    @property
+    def write_strategies(self):
+        return self._angr_memory.write_strategies

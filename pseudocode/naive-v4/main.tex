@@ -33,6 +33,8 @@
   \begin{algorithmic}
   	\State Immutable objects:
   	%\State $~~M_s~~~~~~~~~~~~~~~~~~~:= \{(e,v)\}$ 
+  	\State $~~~t_{pos}~~~~~~~~~~~~~~~\,\,~:=$ timestamp (initially, set to 0)
+  	\State $~~~t_{neg}~~~~~~~~~~~~~~~\,\,~:=$ timestamp (initially, set to 0)
   	\State $~~~e~~~~~~~~~~~~~~~~~~~\,~:=$ an expression over symbols and concrete values
   	\State $~~~v~~~~~~~~~~~~~~~~~~~~\,:=$ a 1-byte expression over symbols and concrete values
   	\State $~~~V~~~~~~~~~~~~~~~~~~~\,:=$ ordered set of $v$
@@ -46,7 +48,7 @@
   \bigskip
   
   \begin{algorithmic}[1]
-	\Function{store}{$e$, $v$, $size$}:
+	\Function{store}{$e$, $V$, $size$}:
 		\For {$k = 0~\text{to}~size - 1$} 
 			\State \Call{\_STORE}{$e + k$, $v_k$}
 		\EndFor
@@ -56,12 +58,12 @@
   \bigskip
 
   \begin{algorithmic}[1]
-	\Function{\_store}{$e$, $V$}:
+	\Function{\_store}{$e$, $v$}:
 		
 		\State $a = min(e$)
 		\State $b = max(e$)
-		\State $t \leftarrow t + 1$
-		\State \Call{insert}{($a, b), (e, v, t, true)$)}
+		\State $t_{pos} \leftarrow t_{pos} + 1$
+		\State \Call{insert}{($a, b), (e, v, t_{pos}, true)$)}
 
 	\EndFunction
   \end{algorithmic}
@@ -79,7 +81,7 @@
 				\State \Return
 			\EndIf
 		\EndFor
-		\State \Call{add}{($a, b), (e, v, t, \delta)$)}
+		\State $M_s.$\Call{add}{($a, b), (e, v, t, \delta)$)}
 	\EndFunction
   \end{algorithmic}
 
@@ -119,7 +121,8 @@
 		\State $P' \leftarrow \Call{sort\_by\_increasing\_timestamp}{P}$
 
 		\State $v \leftarrow \bot$
-		\State \Call{add}{($a, b), (e, v, 0, true)$} \Comment{implicit store}
+		\State $t_{neg} \leftarrow t_{neg} - 1$
+		\State $M_s.$\Call{add}{($a, b), (e, v, t_{neg}, true)$} \Comment{implicit store}
 
 		\For {$(\widetilde{e}, \widetilde{v}, \widetilde{t}, \widetilde{\delta}) \in P'$} 
 			\State $v \leftarrow ite(e = \widetilde{e}~\wedge~\widetilde{\delta}, \widetilde{v}, v) $
@@ -132,17 +135,26 @@
   \bigskip
 
   \begin{algorithmic}[1]
-	\Function{merge}{$(S_1, \delta_1), (S_2, \delta_2)$}:
+	\Function{merge}{$(S_1, \delta_1), (S_2, \delta_2), S_{ancestor}$}: \Comment{$S_1 := self$}
 
-		\State $M_s \leftarrow $\Call{Interval\_Tree}{~}
-		\For {$x \in S_{1}.M_s$} 
+		\State $t_{pos}^{anc} = S_{ancestor}.t_{pos}$ 
+		\State $t_{neg}^{anc} = S_{ancestor}.t_{neg}$ 
+
+		\State $M_s \leftarrow S_{ancestor}.M_s$
+		
+		\For {$\{x \in S_{1}.M_s~|~(x(t) > 0 \wedge x(t) > t_{pos}^{anc}) \vee (x(t) < 0 \wedge x(t) < t_{neg}^{anc})\}$} 
 			\State $x(\delta) = x(\delta) \wedge \delta_1$
-			\State \Call{add}{($x(a), x(b)), x$)}
+			\State $M_s.$\Call{add}{($x(a), x(b)), x$)}
 		\EndFor
-		\For {$x \in S_{2}.M_s$} 
+		
+		\For {$\{x \in S_{2}.M_s~|~(x(t) > 0 \wedge x(t) > t_{pos}^{anc}) \vee (x(t) < 0 \wedge x(t) < t_{neg}^{anc})\}$}
 			\State $x(\delta) = x(\delta) \wedge \delta_2$
-			\State \Call{add}{($x(a), x(b)), x$)}
+			\State $M_s.$\Call{add}{($x(a), x(b)), x$)}
 		\EndFor
+
+		\State $t_{pos} = max(S_1.t_{pos}, S_2.t_{pos})$ 
+		\State $t_{neg} = min(S_1.t_{neg}, S_2.t_{neg})$ 
+
 	\EndFunction
   \end{algorithmic}
 
