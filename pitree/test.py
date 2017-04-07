@@ -54,6 +54,8 @@ def main(args):
     print "s"
     for i in s.search(0,sys.maxint): print i
 
+    pitree.print_stats([t.get_stats(), r.get_stats(), s.get_stats()])
+
     return 0
 
 if __name__ == "__main__":
