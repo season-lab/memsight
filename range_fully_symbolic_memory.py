@@ -937,9 +937,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         try:
 
-            old = self._symbolic_memory
-            self._symbolic_memory = pitree.pitree()
-
             assert self.timestamp_implicit == 0
             assert other.timestamp_implicit == 0
             assert len(self._initializable._keys) == 0
@@ -965,24 +962,19 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             print "Ancestor timestamp: " + str(ancestor_timestamp)
 
-            P = old.search(0, sys.maxint)
-            #P = self._symbolic_memory.search(0, sys.maxint)
+            P = self._symbolic_memory.search(0, sys.maxint)
             for p in P:
                 assert p.data.t > 0
-                if True or (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
                     guard = claripy.And(p.data.guard, merge_conditions[0]) if p.data.guard is not None else merge_conditions[0]
                     i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, guard)
                     #print "Updating guard of item with timestamp " + str(p.data.t)
-                    #self._symbolic_memory.update_item(p, i)
-                    self._symbolic_memory.add(p.begin, p.end, i)
-                else:
-                    i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, p.data.guard)
-                    self._symbolic_memory.add(p.begin, p.end, i)
+                    self._symbolic_memory.update_item(p, i)
 
             P = other._symbolic_memory.search(0, sys.maxint)
             for p in P:
                 assert p.data.t > 0
-                if True or (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
                     guard = claripy.And(p.data.guard, merge_conditions[1]) if p.data.guard is not None else merge_conditions[1]
                     i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, guard)
                     #print "Adding new item with timestamp " + str(p.data.t)
