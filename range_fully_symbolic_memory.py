@@ -982,7 +982,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             P = other._symbolic_memory.search(0, sys.maxint)
             for p in P:
                 assert p.data.t > 0
-                if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                if True or (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
                     guard = claripy.And(p.data.guard, merge_conditions[1]) if p.data.guard is not None else merge_conditions[1]
                     i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, guard)
                     #print "Adding new item with timestamp " + str(p.data.t)
