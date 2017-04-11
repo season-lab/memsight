@@ -30,7 +30,7 @@ class page:
 
     def __init__(self, begin, end):
         """
-        Page constructor. Intervals [begin, end] are assumed to be closed.
+        Page constructor
         """
         self.begin    = begin
         self.end      = end
@@ -46,8 +46,8 @@ class page:
         self.lazycopy = True
         p = page(self.begin, self.end)
         p.lazycopy = True
-        p.tree   = self.tree
-        p.lookup = self.lookup
+        p.tree     = self.tree
+        p.lookup   = self.lookup
         return p
 
     def add(self, begin, end, item=None):
@@ -88,6 +88,7 @@ class page:
                ", tree="     + str(self.tree) + "]"
 
     __str__ = __repr__
+
 
 # ----------------------------------------------------------------------
 # pitree
