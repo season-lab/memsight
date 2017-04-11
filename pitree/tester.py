@@ -72,13 +72,13 @@ class tester:
         print "%d search %s" % (self.cnt, str(parms))
         assert parms[0] in self.trees
         t =  self.trees[parms[0]]
-        s_pitree = set(t.pitree.search(parms[1], parms[2]))
-        s_untree = set(t.untree.search(parms[1], parms[2]))
+        s_pitree = tester._tree2set(t.pitree, parms[1], parms[2])
+        s_untree = tester._tree2set(t.untree, parms[1], parms[2])
         tester._check_sets(s_pitree, s_untree, "### search(%d, %d) error: " % (parms[1], parms[2]))
         tester._check_trees(t)
 
     @classmethod
-    def _tree2set(cls,t):
+    def _tree2set(cls, t, begin=0, end=sys.maxint):
         s = set()
         for i in t.search(0, sys.maxint):
             s.add((i.begin, i.end, i.data))
