@@ -200,7 +200,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._arch = arch
         self._endness = "Iend_BE" if endness is None else endness
         
-        self._symbolic_memory = pitree.pitree() if symbolic_memory is None else symbolic_memory
+        self._symbolic_memory = Untree() if symbolic_memory is None else symbolic_memory
         self.timestamp = timestamp
         self.timestamp_implicit = timestamp_implicit
 
@@ -259,12 +259,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     data_offset += page_size - page_offset
                     page_offset = 0
 
+        """
+        # force load initialized bytes at the startup
         indexes = set(self._initializable._keys)
         for index in indexes:
             self._load_init_data(index * 0x1000, 1)
 
         print self._initializable._keys
         assert len(self._initializable._keys) == 0
+        """
 
         self._initialized = True
 
@@ -291,10 +294,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             if self.verbose: self.log("\tLoading initialized data at " + str(data[0]))
             for j in range(data[4]):
 
-                self.timestamp += 1
+                #self.timestamp += 1
                 e = (data[0] * 0x1000) + data[3] + j
                 v = MemoryObject(data[1], data[2] + j)
-                self._symbolic_memory.add(e, e + 1, SymbolicItem(e, v, self.timestamp, None))
+                self._symbolic_memory.add(e, e + 1, SymbolicItem(e, v, 0, None))
 
             to_remove.append(data)
             k += 1
@@ -937,22 +940,16 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         try:
 
-            assert self.timestamp_implicit == 0
-            assert other.timestamp_implicit == 0
-            assert len(self._initializable._keys) == 0
-            assert len(other._initializable._keys) == 0
             assert self._stack_range == other._stack_range
 
             missing_self = set(self._initializable._keys) - set(other._initializable._keys)
             for index in missing_self:
-                #assert False
                 self._load_init_data(index * 0x1000, 1)
 
             assert len(set(self._initializable._keys) - set(other._initializable._keys)) == 0
 
             missing_other = set(other._initializable._keys) - set(self._initializable._keys)
             for index in missing_other:
-                #assert False
                 other._load_init_data(index * 0x1000, 1)
 
             assert len(set(other._initializable._keys) - set(self._initializable._keys)) == 0
@@ -960,31 +957,74 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             ancestor_timestamp = common_ancestor.timestamp
             ancestor_timestamp_implicit = common_ancestor.timestamp_implicit
 
-            print "Ancestor timestamp: " + str(ancestor_timestamp)
-
             P = self._symbolic_memory.search(0, sys.maxint)
             for p in P:
-                assert p.data.t > 0
-                if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                assert p.data.t >= 0
+                if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
                     guard = claripy.And(p.data.guard, merge_conditions[0]) if p.data.guard is not None else merge_conditions[0]
                     i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, guard)
-                    #print "Updating guard of item with timestamp " + str(p.data.t)
                     self._symbolic_memory.update_item(p, i)
 
             P = other._symbolic_memory.search(0, sys.maxint)
             for p in P:
-                assert p.data.t > 0
-                if (p.data.t > 0 and p.data.t > ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                assert p.data.t >= 0
+                if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
                     guard = claripy.And(p.data.guard, merge_conditions[1]) if p.data.guard is not None else merge_conditions[1]
                     i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, guard)
-                    #print "Adding new item with timestamp " + str(p.data.t)
                     self._symbolic_memory.add(p.begin, p.end, i)
 
             self.timestamp = max(self.timestamp, other.timestamp)
             self.timestamp_implicit = min(self.timestamp_implicit, other.timestamp_implicit)
 
-            assert self.timestamp_implicit == 0
-            assert other.timestamp_implicit == 0
-
         except Exception as e:
             pdb.set_trace()
+
+class Untree(object):
+
+    def __init__(self, items=[]):
+        self._list = items
+
+    def search(self, a, b):
+        b -= 1
+        res = []
+        for e in self._list:
+            if self._intersect(a, b, e.begin, e.end):
+                res.append(e)
+        return res
+
+    def update_item(self, e, data):
+        new_e = UntreeItem(e.begin, e.end, data, e.index)
+        self._list[e.index] = new_e
+
+    def copy(self):
+        return Untree(self._list[:])
+
+    def add(self, begin, end, data):
+        end -= 1
+        e = UntreeItem(begin, end, data, len(self._list))
+        self._list.append(e)
+
+    def _intersect(self, a_min, a_max, b_min, b_max):
+
+        if b_min <= a_min <= b_max:
+            return True
+
+        if a_min <= b_min <= a_max:
+            return True
+
+        if b_min <= a_max <= b_max:
+            return True
+
+        if a_min <= b_max <= a_max:
+            return True
+
+        return False
+
+class UntreeItem(object):
+    __slots__ = ('begin', 'end', 'data', 'index')
+
+    def __init__(self, begin, end, data, index):
+        self.begin = begin
+        self.end = end
+        self.data = data
+        self.index = index
