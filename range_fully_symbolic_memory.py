@@ -983,7 +983,6 @@ class Untree(object):
 
     def __init__(self, items=[]):
         self._list = items
-        self._log = log
 
     def search(self, a, b):
         b -= 1
