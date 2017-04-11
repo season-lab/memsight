@@ -22,7 +22,8 @@ class Untree(object):
         for e in self._list:
             if self._intersect(a, b, e.begin, e.end):
                 res.append(e)
-        return res
+
+        return set(res)
 
     def update_item(self, e, data):
 
