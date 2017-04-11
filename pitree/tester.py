@@ -4,13 +4,16 @@ import sys, collections
 from pitree import pitree 
 from untree import Untree
 
+
 class tester:
+
+    countdown = 0
 
     ttype = collections.namedtuple('ttype', 'pitree untree')
 
     def __init__(self):
         self.trees = dict()
-        self.cnt   = 0
+        self.cnt   = 1
 
     @classmethod
     def do_test(cls, filename):
@@ -34,6 +37,8 @@ class tester:
         assert parms[1] not in self.trees
         t = self.trees[parms[0]]
         self.trees[parms[1]] = self.ttype(t.pitree.copy(), t.untree.copy())
+        self._check_trees(parms[0])
+        self._check_trees(parms[1])
 
     def _do_add(self, parms):
         print "%d add %s" % (self.cnt, str(parms))
@@ -41,7 +46,7 @@ class tester:
         t = self.trees[parms[0]]
         t.pitree.add(parms[1], parms[2], parms[3])
         t.untree.add(parms[1], parms[2], parms[3])
-        tester._check_trees(t)
+        self._check_trees(parms[0])
 
     def _do_update(self, parms):
         print "%d update %s" % (self.cnt, str(parms))
@@ -59,14 +64,14 @@ class tester:
                 i_untree = i
         t.pitree.update_item(i_pitree, parms[2])
         t.untree.update_item(i_untree, parms[2])
-        tester._check_trees(t)
+        self._check_trees(parms[0])
 
     def _do_new(self, parms):
         print "%d new %s" % (self.cnt, str(parms))
         assert parms[0] not in self.trees
         t = self.ttype(pitree(), Untree())
         self.trees[parms[0]] = t
-        tester._check_trees(t)
+        self._check_trees(parms[0])
 
     def _do_search(self, parms):
         print "%d search %s" % (self.cnt, str(parms))
@@ -74,8 +79,27 @@ class tester:
         t =  self.trees[parms[0]]
         s_pitree = tester._tree2set(t.pitree, parms[1], parms[2])
         s_untree = tester._tree2set(t.untree, parms[1], parms[2])
-        tester._check_sets(s_pitree, s_untree, "### search(%d, %d) error: " % (parms[1], parms[2]))
-        tester._check_trees(t)
+        if not tester._check_sets(s_pitree, s_untree, "### search(%d, %d) error: " % (parms[1], parms[2])):
+            self._dump_tree(parms[0])
+            sys.exit(1)
+        self._check_trees(parms[0])
+
+    def _dump_tree(self, tree_id):
+        assert tree_id in self.trees
+        f = open("dump.log", "w") 
+        f.write("n,%d\n" % tree_id)
+        t = self.trees[tree_id]
+        for i in t.untree.search(0, sys.maxint):
+            f.write("a,%d,%d,%d,%d\n" % (tree_id, i.begin, i.end, i.data))
+        f.close()
+
+    def _check_trees(self, tree_id):
+        t = self.trees[tree_id]
+        s_pitree = tester._tree2set(t.pitree)
+        s_untree = tester._tree2set(t.untree)
+        if not tester._check_sets(s_pitree, s_untree, "### misaligned trees error"):
+            self._dump_tree(tree_id)
+            sys.exit(1)
 
     @classmethod
     def _tree2set(cls, t, begin=0, end=sys.maxint):
@@ -85,18 +109,15 @@ class tester:
         return s
 
     @classmethod
-    def _check_trees(cls, t):
-        s_pitree = tester._tree2set(t.pitree)
-        s_untree = tester._tree2set(t.untree)
-        tester._check_sets(s_pitree, s_untree, "### misaligned trees error")
-
-    @classmethod
     def _check_sets(cls, s_pitree, s_untree, msg):
         if s_pitree != s_untree:
             print msg
             print "    s_pitree - s_untree = " + str(s_pitree - s_untree)
             print "    s_untree - s_pitree = " + str(s_untree - s_pitree)
-            sys.exit(1)
+            return False
+        # tester.countdown += 1
+        # if (tester.countdown == 100): return False
+        return True
 
     @classmethod
     def _read_log_file(cls, filename):

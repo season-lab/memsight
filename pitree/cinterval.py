@@ -132,14 +132,15 @@ class Interval(namedlist('IntervalBase', ['begin', 'end', 'data'])):
 
     def __eq__(self, other):
         """
-        Same as range_matches() -- Modified ***CD 170404
+        Checks if intervals are equal.
         :param other: Interval
         :return: True or False
         :rtype: bool
         """
         return (
             self.begin == other.begin and
-            self.end == other.end
+            self.end == other.end and
+            self.data == other.data
         )
 
     def __cmp__(self, other):
