@@ -995,7 +995,6 @@ class Untree(object):
     def update_item(self, e, data):
         new_e = UntreeItem(e.begin, e.end, data, e.index)
         self._list[e.index] = new_e
-        self._log.append(['u', id(self), id(e.data), id(data)])
 
     def copy(self):
         return Untree(self._list[:])
