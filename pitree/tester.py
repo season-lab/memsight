@@ -80,7 +80,7 @@ class tester:
     @classmethod
     def _tree2set(cls, t, begin=0, end=sys.maxint):
         s = set()
-        for i in t.search(0, sys.maxint):
+        for i in t.search(begin, end):
             s.add((i.begin, i.end, i.data))
         return s
 
