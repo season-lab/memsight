@@ -171,7 +171,6 @@ class pitree:
         self._copy_on_write()
         try:
             p = self.__lookup[(begin_p, end_p)]
-            #print "adding to page " + str(p)
         except KeyError:
             p = page(begin_p, end_p)
             self.__lookup[(begin_p, end_p)] = p
