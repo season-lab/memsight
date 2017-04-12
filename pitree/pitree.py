@@ -97,7 +97,7 @@ class pitree:
 
     stats = collections.namedtuple('stats', 'num_pages num_intervals num_1_intervals')
 
-    def __init__(self, page_size = 2048):
+    def __init__(self, page_size = 128):
         self.__pages       = IntervalTree()
         self.__lookup      = dict()
         self.__lazycopy    = False
