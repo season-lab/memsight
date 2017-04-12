@@ -201,7 +201,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._arch = arch
         self._endness = "Iend_BE" if endness is None else endness
         
-        self._symbolic_memory = untree.Untree() if symbolic_memory is None else symbolic_memory
+        self._symbolic_memory = pitree.pitree() if symbolic_memory is None else symbolic_memory
         self.timestamp = timestamp
         self.timestamp_implicit = timestamp_implicit
 
