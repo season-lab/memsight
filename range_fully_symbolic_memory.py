@@ -1059,6 +1059,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             pdb.set_trace()
 
     def _copy_symbolic_items_and_apply_guard(self, L, guard):
+        if L is None:
+            return []
         if type(L) not in (list,):
             L = [L]
         LL = []
