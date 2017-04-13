@@ -662,7 +662,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             P  = self._symbolic_memory.search(min_addr + k, max_addr + k + 1)
                             if self.verbose: self.log("\tConflicting formulas: " + str(len(P)))
                             for p in P:
-                                if id(p.addr) == id(addr + k): # this check is pretty useless...
+                                if id(p.data.addr) == id(addr + k): # this check is pretty useless...
                                     if self.verbose: self.log("\tUpdating node...")
                                     self._symbolic_memory.update_item(p, MemoryItem(addr + k, obj, self.timestamp, None))
                                     replaced = True
