@@ -126,7 +126,7 @@ class MemoryObject(object):
             else:
                 return False
 
-class SymbolicItem(object):
+class MemoryItem(object):
 
     __slots__ = ('addr', 'obj', 't', 'guard')
 
@@ -154,7 +154,7 @@ class SymbolicItem(object):
         return True
 
     def copy(self):
-        return SymbolicItem(self.addr, self.obj, self.t, self.obj)
+        return MemoryItem(self.addr, self.obj, self.t, self.obj)
 
 
 class MappedRegion(object):
@@ -309,12 +309,16 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             data = self._initializable[k] # [page_index, data, data_offset, page_offset, min(size, page_size]
             if self.verbose: self.log("\tLoading initialized data at " + str(data[0]))
+            page = self._concrete_memory._pages[data[0]] if data[0] in self._concrete_memory._pages else None
             for j in range(data[4]):
 
-                #self.timestamp += 1
+                if page is not None and data[3] + j in page:
+                    continue
+
                 e = (data[0] * 0x1000) + data[3] + j
                 v = MemoryObject(data[1], data[2] + j)
-                self._symbolic_memory.add(e, e + 1, SymbolicItem(e, v, 0, None))
+                self._concrete_memory[e] = MemoryItem(e, v, 0, None)
+                #self._symbolic_memory.add(e, e + 1, MemoryItem(e, v, 0, None))
 
             to_remove.append(data)
             k += 1
@@ -477,7 +481,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                             # implicit store...
                             self.timestamp_implicit -= 1
-                            self._symbolic_memory.add(min_addr + k, max_addr + k + 1, SymbolicItem(addr + k, MemoryObject(obj, 0), self.timestamp_implicit, None))
+                            self._symbolic_memory.add(min_addr + k, max_addr + k + 1, MemoryItem(addr + k, MemoryObject(obj, 0), self.timestamp_implicit, None))
 
                         if self.verbose: self.log("\tAdding ite cases: " + str(len(P)))
                         obj = self.build_merged_ite(addr + k, P, obj)
@@ -592,7 +596,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         try:
 
             if not internal:
-                if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes.") # Content: " + str(data))
+                if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes.")# Content: " + str(data))
                 pass
 
             assert self._id == 'mem' or self._id == 'reg'
@@ -652,7 +656,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             assert len(P) <= 1
                             if len(P) == 1:
                                 if self.verbose: self.log("\tUpdating concrete address" + str(len(P)))
-                                self._concrete_memory[min_addr + k] = SymbolicItem(min_addr + k, obj, self.timestamp, None)
+                                self._concrete_memory[min_addr + k] = MemoryItem(min_addr + k, obj, self.timestamp, None)
                                 replaced = True
 
                         if not replaced:
@@ -661,7 +665,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             for p in P:
                                 if id(p.addr) == id(addr + k): # this check is pretty useless...
                                     if self.verbose: self.log("\tUpdating node...")
-                                    self._symbolic_memory.update_item(p, SymbolicItem(addr + k, obj, self.timestamp, None))
+                                    self._symbolic_memory.update_item(p, MemoryItem(addr + k, obj, self.timestamp, None))
                                     replaced = True
                                     break
 
@@ -669,10 +673,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                         if constant_addr and condition is None:
                             if self.verbose: self.log("\tAdding concrete address...")
-                            self._concrete_memory[min_addr + k] = SymbolicItem(min_addr + k, obj, self.timestamp, None)
+                            self._concrete_memory[min_addr + k] = MemoryItem(min_addr + k, obj, self.timestamp, None)
                         else:
                             if self.verbose: self.log("\tAdding node...")
-                            self._symbolic_memory.add(min_addr + k, max_addr + k + 1, SymbolicItem(addr + k, obj, self.timestamp, condition))
+                            self._symbolic_memory.add(min_addr + k, max_addr + k + 1, MemoryItem(addr + k, obj, self.timestamp, condition))
 
                 if not disable_actions:
                     if simuvex.o.AUTO_REFS in self.state.options and action is None and not self._abstract_backer:
@@ -1098,7 +1102,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 assert p.data.t >= 0
                 if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
                     guard = claripy.And(p.data.guard, merge_conditions[0]) if p.data.guard is not None else merge_conditions[0]
-                    i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, guard)
+                    i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
                     self._symbolic_memory.update_item(p, i)
                     count += 1
 
@@ -1107,7 +1111,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 assert p.data.t >= 0
                 if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
                     guard = claripy.And(p.data.guard, merge_conditions[1]) if p.data.guard is not None else merge_conditions[1]
-                    i = SymbolicItem(p.data.addr, p.data.obj, p.data.t, guard)
+                    i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
                     self._symbolic_memory.add(p.begin, p.end, i)
                     count += 1
 
