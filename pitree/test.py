@@ -44,6 +44,8 @@ def main(args):
 
     print "add to s"
     s.add(113, 1784, "five")
+    s.add(114, 1784, "six")
+    s.add(114, 1784, "seven")
 
     print "t"
     for i in t.search(0,sys.maxint): print i

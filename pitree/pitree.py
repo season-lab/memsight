@@ -95,7 +95,7 @@ class page:
 # ----------------------------------------------------------------------
 class pitree:
 
-    stats = collections.namedtuple('stats', 'num_pages num_intervals num_1_intervals')
+    stats = collections.namedtuple('stats', 'num_pages num_intervals num_1_intervals is_lazy_tree num_lazy_pages max_page_size')
 
     def __init__(self, page_size = 128):
         self.__pages       = IntervalTree()
@@ -106,43 +106,59 @@ class pitree:
         self.__num_1_inter = 0
 
     def __repr__(self):
-        return "---\npages="  + str(self.__pages)       + "\n\n"  + \
-               "lookup="      + str(self.__lookup)      + "\n\n"  + \
-               "lazycopy="    + str(self.__lazycopy)    + "\n"    + \
-               "page_size="   + str(self.__page_size)   + "\n"    + \
-               "num inter="   + str(self.__num_inter)   + "\n---" + \
-               "num 1-inter=" + str(self.__num_1_inter) + "\n---"
+        return "---\npages="   + str(self.__pages)       + "\n\n"  + \
+               "lookup="       + str(self.__lookup)      + "\n\n"  + \
+               "lazycopy="     + str(self.__lazycopy)    + "\n"    + \
+               "page_size="    + str(self.__page_size)   + "\n"    + \
+               "num inter="    + str(self.__num_inter)   + "\n---" + \
+               "num 1-inter="  + str(self.__num_1_inter) + "\n---"
 
     __str__ = __repr__
 
     def get_stats(self):
-        return pitree.stats(num_pages       = len(self.__lookup),  \
-                            num_intervals   = self.__num_inter,    \
-                            num_1_intervals = self.__num_1_inter)
+        n = sum(1 for p in self.__pages if p.data.lazycopy)
+        m = max(len(p.data.tree) for p in self.__pages)
+        return pitree.stats(num_pages       = len(self.__lookup),          \
+                            num_intervals   = self.__num_inter,            \
+                            num_1_intervals = self.__num_1_inter,          \
+                            is_lazy_tree    = 1 if self.__lazycopy else 0, \
+                            num_lazy_pages  = n,                           \
+                            max_page_size   = m
+                            )
 
     @classmethod
     def print_stats(cls, stats_list):
         max_pages       = 0
         max_intervals   = 0
         max_1_intervals = 0
+        max_page_size   = 0
         tot_pages       = 0
         tot_intervals   = 0
         tot_1_intervals = 0
+        tot_lazy_trees  = 0
+        tot_lazy_pages  = 0
         n               = len(stats_list)
         for s in stats_list:
             tot_pages       += s.num_pages
             tot_intervals   += s.num_intervals
             tot_1_intervals += s.num_1_intervals
+            tot_lazy_trees  += s.is_lazy_tree
+            tot_lazy_pages  += s.num_lazy_pages
             if (s.num_pages       > max_pages):       max_pages       = s.num_pages
             if (s.num_intervals   > max_intervals):   max_intervals   = s.num_intervals
             if (s.num_1_intervals > max_1_intervals): max_1_intervals = s.num_1_intervals
-        print "[pitree] num pitrees="         + str(n)                 + \
-                     ", max num pages="       + str(max_pages)         + \
-                     ", max ints per tree="   + str(max_intervals)     + \
-                     ", max 1-ints per tree=" + str(max_1_intervals)   + \
-                     ", avg num pages="       + str(tot_pages/n)       + \
-                     ", avg ints per tree="   + str(tot_intervals/n)   + \
-                     ", avg 1-ints per tree=" + str(tot_1_intervals/n)
+            if (s.max_page_size   > max_page_size):   max_page_size   = s.max_page_size
+        print "[pitree] num trees=%d"               % n                        + \
+                     ", of which lazy=%3.0f%%"      % (100.0*tot_lazy_trees/n) + \
+                     ", avg pages per tree=%d"      % (tot_pages/n)            + \
+                     ", max pages per tree=%d"      % max_pages                + \
+                     ", avg ints per tree=%d"       % (tot_intervals/n)        + \
+                     ", max ints per tree=%d"       % max_intervals            + \
+                     ", avg 1-ints per tree=%d"     % (tot_1_intervals/n)      + \
+                     ", max 1-ints per tree=%d"     % max_1_intervals          + \
+                     ", avg lazy pages per tree=%d" % (tot_lazy_pages/n)       + \
+                     ", max page size=%d"           % max_page_size            + \
+                     ""
 
     def copy(self):
         """
