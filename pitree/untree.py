@@ -24,7 +24,7 @@ class Untree(object):
     def new_round(cls):
         Untree._round += 1
         if Untree._log is not None:
-            Untree._log.append(['r', Untree._round])
+            Untree._log.append(['r', str(Untree._round)])
 
     def _do_log(self, item):
         log = self._log   if self._log   is not None else  \
