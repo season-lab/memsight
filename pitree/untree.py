@@ -2,6 +2,9 @@ untree_next_id = 1
 
 class Untree(object):
 
+    __round = 0
+    __log = None
+
     def __init__(self, items=[], log=None, trace=True):
         self._list = items
         self._log = log
@@ -10,13 +13,27 @@ class Untree(object):
         self._id = untree_next_id
         untree_next_id += 1
 
-        if self._log is not None and trace:
-            self._log.append(['n', str(self._id)])
+        self._log(['n', str(self._id)])
+
+    @classmethod
+    def set_log(cls, log):
+        assert Untree.__log is None
+        Untree.__log = log
+
+    @classmethod
+    def new_round(cls):
+        Untree.__round += 1
+        if Untree.__log is not None:
+            Untree.__log.append(['r', _round])
+
+    def _log(self, item):
+        log = self.__log if self.__log is not None else Untree.__log if Untree.__log is not None else None
+        if log is not None:
+            log.append(item)
 
     def search(self, a, b):
 
-        if self._log is not None:
-            self._log.append(['s', str(self._id), str(a), str(b)])
+        self._log(['s', str(self._id), str(a), str(b)])
 
         res = []
         for e in self._list:
@@ -27,8 +44,7 @@ class Untree(object):
 
     def update_item(self, e, data):
 
-        if self._log is not None:
-            self._log.append(['u', str(self._id), str(id(e.data)), str(id(data))])
+        self._log(['u', str(self._id), str(id(e.data)), str(id(data))])
 
         new_e = UntreeItem(e.begin, e.end, data, e.index)
         self._list[e.index] = new_e
@@ -37,16 +53,14 @@ class Untree(object):
 
         r = Untree(self._list[:], log=(self._log[:] if self._log is not None else None), trace=False)
 
-        if self._log is not None:
-            self._log.append(['c', str(self._id), str(r._id)])
-            r._log.append(['c', str(self._id), str(r._id)])
+        self._log(['c', str(self._id), str(r._id)])
+        if Untree.__log is None: r._log(['c', str(self._id), str(r._id)])
 
         return r
 
     def add(self, begin, end, data):
 
-        if self._log is not None:
-            self._log.append(['a', str(self._id), str(begin), str(end), str(id(data))])
+        self._log(['a', str(self._id), str(begin), str(end), str(id(data))])
 
         e = UntreeItem(begin, end, data, len(self._list))
         self._list.append(e)
