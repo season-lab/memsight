@@ -214,6 +214,7 @@ class Executor(object):
 
         print "One path has reached target instruction: " + str(hex(found[0].state.ip.args[0]))
         state = found[0].state
+        print len(found)
         self.config.do_end(state, data, pg)
         print "Constraints:"
         self._print_constraints(state.se.constraints, None)
