@@ -13,7 +13,8 @@ class Untree(object):
         self._id = untree_next_id
         untree_next_id += 1
 
-        self._do_log(['n', str(self._id)])
+        if trace:
+            self._do_log(['n', str(self._id)])
 
     @classmethod
     def set_log(cls, log):

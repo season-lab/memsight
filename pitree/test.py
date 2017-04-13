@@ -2,30 +2,21 @@
 
 import sys 
 from pitree import pitree 
+from pympler import asizeof, tracker
 
 # test
 def main(args):
+    tr = tracker.SummaryTracker()
     t = pitree()
-
-    print "size of t = %d" % t.get_stats().size
+    tr.print_diff()
 
     t.add(2413, 2414, "zero")
-    print "size of t = %d" % t.get_stats().size
 
     t.add(2400, 3290, "one")
-    print "size of t = %d" % t.get_stats().size
-
     t.add(1250, 2913, "two")
-    print "size of t = %d" % t.get_stats().size
-
     t.add(2999, 4601, "three")
-    print "size of t = %d" % t.get_stats().size
-
     t.add(1639, 3007, "four")
-    print "size of t = %d" % t.get_stats().size
-
     t.add(1639, 3007, "four'")
-    print "size of t = %d" % t.get_stats().size
 
     print "t"
     for i in t.search(0,sys.maxint): print i
@@ -73,7 +64,10 @@ def main(args):
 
     pitree.print_stats([t.get_stats(), r.get_stats(), s.get_stats()])
     
-    print "size of s = %d" % s.get_stats().size
+    print asizeof.asized(s, detail=1).format()
+
+    tr.print_diff()
+    tr.print_diff()
 
     return 0
 
