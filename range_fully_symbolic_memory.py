@@ -653,8 +653,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                         if constant_addr:
                             P  = self._concrete_memory[min_addr + k]
-                            assert len(P) <= 1
-                            if len(P) == 1:
+                            if P is not None:
                                 if self.verbose: self.log("\tUpdating concrete address" + str(len(P)))
                                 self._concrete_memory[min_addr + k] = MemoryItem(min_addr + k, obj, self.timestamp, None)
                                 replaced = True
