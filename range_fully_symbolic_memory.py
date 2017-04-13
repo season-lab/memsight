@@ -1040,7 +1040,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         else:
                             same_value = True
                             for k in range(len(v_self)): # we only get equality when items are in the same order
-                                assert sub_v_self.addr == sub_v_other.addr
                                 sub_v_self = v_self[k]
                                 sub_v_other = v_other[k]
                                 if sub_v_self != sub_v_other:
