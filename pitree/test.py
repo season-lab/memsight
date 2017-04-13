@@ -6,11 +6,26 @@ from pitree import pitree
 # test
 def main(args):
     t = pitree()
+
+    print "size of t = %d" % t.get_stats().size
+
     t.add(2413, 2414, "zero")
+    print "size of t = %d" % t.get_stats().size
+
     t.add(2400, 3290, "one")
+    print "size of t = %d" % t.get_stats().size
+
     t.add(1250, 2913, "two")
+    print "size of t = %d" % t.get_stats().size
+
     t.add(2999, 4601, "three")
+    print "size of t = %d" % t.get_stats().size
+
     t.add(1639, 3007, "four")
+    print "size of t = %d" % t.get_stats().size
+
+    t.add(1639, 3007, "four'")
+    print "size of t = %d" % t.get_stats().size
 
     print "t"
     for i in t.search(0,sys.maxint): print i
@@ -57,6 +72,8 @@ def main(args):
     for i in s.search(0,sys.maxint): print i
 
     pitree.print_stats([t.get_stats(), r.get_stats(), s.get_stats()])
+    
+    print "size of s = %d" % s.get_stats().size
 
     return 0
 

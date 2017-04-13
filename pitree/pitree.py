@@ -21,7 +21,7 @@ limitations under the License.
 
 import collections
 from cintervaltree import Interval, IntervalTree # use custom interval tree
-    
+from pympler import asizeof    
 
 # ----------------------------------------------------------------------
 # page
@@ -95,7 +95,7 @@ class page:
 # ----------------------------------------------------------------------
 class pitree:
 
-    stats = collections.namedtuple('stats', 'num_pages num_intervals num_1_intervals is_lazy_tree num_lazy_pages max_page_size')
+    stats = collections.namedtuple('stats', 'num_pages num_intervals num_1_intervals is_lazy_tree num_lazy_pages max_page_size, size')
 
     def __init__(self, page_size = 128):
         self.__pages       = IntervalTree()
@@ -117,13 +117,15 @@ class pitree:
 
     def get_stats(self):
         n = sum(1 for p in self.__pages if p.data.lazycopy)
-        m = max(len(p.data.tree) for p in self.__pages)
+        m = max(len(p.data.tree) for p in self.__pages) if len(self.__pages) > 0 else 0
+        s = asizeof.asizeof(self)
         return pitree.stats(num_pages       = len(self.__lookup),          \
                             num_intervals   = self.__num_inter,            \
                             num_1_intervals = self.__num_1_inter,          \
                             is_lazy_tree    = 1 if self.__lazycopy else 0, \
                             num_lazy_pages  = n,                           \
-                            max_page_size   = m
+                            max_page_size   = m,                           \
+                            size            = s
                             )
 
     @classmethod
@@ -137,6 +139,7 @@ class pitree:
         tot_1_intervals = 0
         tot_lazy_trees  = 0
         tot_lazy_pages  = 0
+        tot_size        = 0
         n               = len(stats_list)
         for s in stats_list:
             tot_pages       += s.num_pages
@@ -144,11 +147,13 @@ class pitree:
             tot_1_intervals += s.num_1_intervals
             tot_lazy_trees  += s.is_lazy_tree
             tot_lazy_pages  += s.num_lazy_pages
+            tot_size        += s.size
             if (s.num_pages       > max_pages):       max_pages       = s.num_pages
             if (s.num_intervals   > max_intervals):   max_intervals   = s.num_intervals
             if (s.num_1_intervals > max_1_intervals): max_1_intervals = s.num_1_intervals
             if (s.max_page_size   > max_page_size):   max_page_size   = s.max_page_size
-        print "[pitree] num trees=%d"               % n                        + \
+        print "[pitree] tot size=%d bytes"          % tot_size                 + \
+                     ", num trees=%d"               % n                        + \
                      ", of which lazy=%3.0f%%"      % (100.0*tot_lazy_trees/n) + \
                      ", avg pages per tree=%d"      % (tot_pages/n)            + \
                      ", max pages per tree=%d"      % max_pages                + \
