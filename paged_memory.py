@@ -65,10 +65,13 @@ class PagedMemory(object):
             count += len(self._pages[p])
         return count
 
-    def find(self, start, end):
+    def find(self, start, end, result_is_flat_list=False):
 
         #self._check_access(None, start, end, self.ACCESS_READ)
-        values = {}
+        if result_is_flat_list:
+            values = []
+        else:
+            values = {}
 
         range_len = end - start
         if range_len >= 1024:
@@ -93,7 +96,20 @@ class PagedMemory(object):
                     page = self._pages[index]
                     while offset < self.PAGE_SIZE:
                         if offset in page:
-                            values[index * self.PAGE_SIZE + offset] = page[offset]
+
+                            if result_is_flat_list:
+
+                                v = page[offset]
+                                if type(v) in (list,):
+                                    for vv in v:
+                                        assert type(vv) not in (list,)
+                                        values.append(vv)
+                                else:
+                                    values.append(v)
+
+                            else:
+                                values[index * self.PAGE_SIZE + offset] = page[offset]
+
                         offset += 1
                         if index * self.PAGE_SIZE + offset > end:
                             return values
@@ -115,7 +131,20 @@ class PagedMemory(object):
                     continue
 
                 if offset in self._pages[index]:
-                    values[addr] = self._pages[index][offset]
+
+                    if result_is_flat_list:
+
+                        v = self._pages[index][offset]
+                        if type(v) in (list,):
+                            for vv in v:
+                                assert type(vv) not in (list,)
+                                values.append(vv)
+                        else:
+                            values.append(v)
+
+                    else:
+                        values[addr] = self._pages[index][offset]
+
                 #else: print "address is empty"
 
                 addr += 1
