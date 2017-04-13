@@ -1030,9 +1030,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     v_self = page_self[offset] if offset in page_self else None
                     v_other = page_other[offset] if offset in page_other else None
 
-                    merged_value = None
                     if type(v_self) not in (list,) and type(v_other) not in (list,):
-                        assert v_self.addr == v_other.addr
                         same_value = v_self == v_other
                     else:
                         if type(v_self) != type(v_other):
