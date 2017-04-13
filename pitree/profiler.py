@@ -2,14 +2,31 @@
 
 import sys
 from runner import runner 
+from pympler import asizeof, tracker
+from pitree import pitree 
 
 class profiler(runner):
 
     def __init__(self):
-        profiler.__init__(self)
+        runner.__init__(self)
 
     def print_report(self):
-        return
+        print "----------------"
+        print "selecting trees created at round %d..." % self.round
+        l   = []
+        pit = set()
+        for tid in self.pitrees:
+            if self.lookup[tid] == self.round:
+                t = self.pitrees[tid]
+                s = t.get_stats()
+                print "%d: %s" % (tid, str(s))
+                l.append(s)
+                pit.add(t)
+        print "%d tree(s) selected." % len(l)
+        print "----------------"
+        pitree.print_stats(l)
+        print "----------------"
+        print "Total memory used by pitrees in the frontier: %u" % asizeof.asizeof(pit)
 
 # test
 def main(args):
