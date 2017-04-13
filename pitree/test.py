@@ -7,11 +7,10 @@ from pympler import asizeof, tracker
 # test
 def main(args):
     tr = tracker.SummaryTracker()
+
     t = pitree()
-    tr.print_diff()
 
     t.add(2413, 2414, "zero")
-
     t.add(2400, 3290, "one")
     t.add(1250, 2913, "two")
     t.add(2999, 4601, "three")
@@ -63,10 +62,7 @@ def main(args):
     for i in s.search(0,sys.maxint): print i
 
     pitree.print_stats([t.get_stats(), r.get_stats(), s.get_stats()])
-    
-    print asizeof.asized(s, detail=1).format()
 
-    tr.print_diff()
     tr.print_diff()
 
     return 0
