@@ -121,10 +121,19 @@ class MemoryObject(object):
             else:
                 return False
         else:
-            if id(self.raw_byte) == id(other.raw_byte) or self.get_byte() == other.get_byte():
+            if self.raw_byte is not None and other.raw_byte is not None and id(self.raw_byte) == id(other.raw_byte):
                 return True
-            else:
-                return False
+
+            a = self.get_byte()
+            b = other.get_byte()
+
+            if id(a) == id(b):
+                return True
+
+            if type(a) in (claripy.ast.bv.BV,) and type(b) in (claripy.ast.bv.BV,) and a == b:
+                return True
+
+            return False
 
 class MemoryItem(object):
 
@@ -318,7 +327,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 e = (data[0] * 0x1000) + data[3] + j
                 v = MemoryObject(data[1], data[2] + j)
                 self._concrete_memory[e] = MemoryItem(e, v, 0, None)
-                #self._symbolic_memory.add(e, e + 1, MemoryItem(e, v, 0, None))
 
             to_remove.append(data)
             k += 1
@@ -419,6 +427,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False, priv=None, disable_actions=False):
 
         assert add_constraints is None
+        assert priv is None
 
         global n_ite
 
@@ -432,7 +441,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             assert self._id == 'mem' or self._id == 'reg'
 
             if condition is not None and self.state.se.is_false(condition):
-                if priv is not None: self.state.scratch.pop_priv()
                 return
 
             addr, size, reg_name = self.memory_op(addr, size)        
@@ -478,7 +486,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                         if(self.category == 'mem' and
                                     simuvex.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY not in self.state.options):
-
                             # implicit store...
                             self.timestamp_implicit -= 1
                             self._symbolic_memory.add(min_addr + k, max_addr + k + 1, MemoryItem(addr + k, MemoryObject(obj, 0), self.timestamp_implicit, None))
@@ -580,7 +587,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         if len(merged_p) > 0:
             if self.verbose: self.log("\tbuilding ite with " + str(len(merged_p)) + " case(s)")  #: "+ str(v))
-            obj = self.build_ite(addr, merged_p, v, obj)
+            obj = self.build_ite(addr, merged_p, merged_p[-1].obj.get_byte(), obj)
 
         return obj
 
@@ -787,15 +794,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         # we do not support symbolic size yet...
         if min_size != max_size:
-            #print "addr " + str(self.state.ip)
-            #print utils.full_stack()
-            #assert min_size == max_size
             l.warning("Concretizing symbolic length. Much sad; think about implementing.")
             self.state.add_constraints(size == max_size, action=True)
 
         if min_size > self._maximum_symbolic_size:
-            assert False
             min_size = self._maximum_symbolic_size
+            assert False # ToDo
 
         return min_size, min(max_size, self._maximum_symbolic_size)
 
@@ -1039,7 +1043,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 page_self = self._concrete_memory._pages[page_index] if page_index in self._concrete_memory._pages else None
                 page_other = other._concrete_memory._pages[page_index] if page_index in other._concrete_memory._pages else None
 
-                # shared page? if yes, keep as it is inside self
+                # shared page? if yes, do no touch it
                 if id(page_self) == id(page_other):
                     continue
 
