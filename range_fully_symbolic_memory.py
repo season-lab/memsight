@@ -154,7 +154,7 @@ class MemoryItem(object):
         return True
 
     def copy(self):
-        return MemoryItem(self.addr, self.obj, self.t, self.obj)
+        return MemoryItem(self.addr, self.obj, self.t, self.guard)
 
 
 class MappedRegion(object):
@@ -646,36 +646,43 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     if not internal:
                         if self.verbose: self.log("\tSlicing data with offset " + str(k))# + " => " + str(obj))
 
-                    replaced = False
+                    inserted = False
                     constant_addr = min_addr == max_addr
 
-                    if condition is not None:
+                    if constant_addr:
 
-                        if constant_addr:
-                            P  = self._concrete_memory[min_addr + k]
-                            if P is not None:
-                                if self.verbose: self.log("\tUpdating concrete address" + str(len(P)))
-                                self._concrete_memory[min_addr + k] = MemoryItem(min_addr + k, obj, self.timestamp, None)
-                                replaced = True
+                        P = self._concrete_memory[min_addr + k]
+                        if P is None or condition is None:
+                            if self.verbose: self.log("\tAdding/Updating concrete address...")
+                            self._concrete_memory[min_addr + k] = MemoryItem(min_addr + k, obj, self.timestamp, condition)
 
-                        if not replaced:
+                        else:
+                            if self.verbose: self.log("\tAdding entry to existing concrete address" + str(len(P)))
+                            item = MemoryItem(min_addr + k, obj, self.timestamp, condition)
+                            if type(P) in (list,):
+                                P.append(item)
+                            else:
+                                P = [item, P]
+                            self._concrete_memory[min_addr + k] = P
+
+                        inserted = True
+
+                    if not inserted:
+
+                        if condition is None:
+
                             P  = self._symbolic_memory.search(min_addr + k, max_addr + k + 1)
                             if self.verbose: self.log("\tConflicting formulas: " + str(len(P)))
                             for p in P:
                                 if id(p.data.addr) == id(addr + k): # this check is pretty useless...
                                     if self.verbose: self.log("\tUpdating node...")
                                     self._symbolic_memory.update_item(p, MemoryItem(addr + k, obj, self.timestamp, None))
-                                    replaced = True
+                                    inserted = True
                                     break
 
-                    if not replaced:
-
-                        if constant_addr and condition is None:
-                            if self.verbose: self.log("\tAdding concrete address...")
-                            self._concrete_memory[min_addr + k] = MemoryItem(min_addr + k, obj, self.timestamp, None)
-                        else:
-                            if self.verbose: self.log("\tAdding node...")
-                            self._symbolic_memory.add(min_addr + k, max_addr + k + 1, MemoryItem(addr + k, obj, self.timestamp, condition))
+                    if not inserted:
+                        if self.verbose: self.log("\tAdding node...")
+                        self._symbolic_memory.add(min_addr + k, max_addr + k + 1, MemoryItem(addr + k, obj, self.timestamp, condition))
 
                 if not disable_actions:
                     if simuvex.o.AUTO_REFS in self.state.options and action is None and not self._abstract_backer:
@@ -1002,6 +1009,20 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             if self.verbose: self.log("Merging concrete addresses...")
 
+            assert self._stack_range == other._stack_range
+
+            missing_self = set(self._initializable._keys) - set(other._initializable._keys)
+            for index in missing_self:
+                self._load_init_data(index * 0x1000, 1)
+
+            assert len(set(self._initializable._keys) - set(other._initializable._keys)) == 0
+
+            missing_other = set(other._initializable._keys) - set(self._initializable._keys)
+            for index in missing_other:
+                other._load_init_data(index * 0x1000, 1)
+
+            assert len(set(other._initializable._keys) - set(self._initializable._keys)) == 0
+
             count = 0
 
             # basic idea:
@@ -1050,7 +1071,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         count += 1
                         merged_value = self._copy_symbolic_items_and_apply_guard(v_self, merge_conditions[0]) \
                                        + self._copy_symbolic_items_and_apply_guard(v_other, merge_conditions[1])
-                        self._concrete_memory[page_index * 0x1000 + offset] = merged_value
+                        assert len(merged_value) > 0
+                        self._concrete_memory[page_index * 0x1000 + offset] = merged_value if len(merged_value) > 1 else merged_value[0]
 
             return count
 
@@ -1065,7 +1087,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         LL = []
         for l in L:
             l = l.copy()
-            l.guard = claripy.And(l.guard, guard) if l.guard is None else guard
+            l.guard = claripy.And(l.guard, guard) if l.guard is not None else guard
             LL.append(l)
         return LL
 
@@ -1077,20 +1099,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         try:
 
             count = 0
-
-            assert self._stack_range == other._stack_range
-
-            missing_self = set(self._initializable._keys) - set(other._initializable._keys)
-            for index in missing_self:
-                self._load_init_data(index * 0x1000, 1)
-
-            assert len(set(self._initializable._keys) - set(other._initializable._keys)) == 0
-
-            missing_other = set(other._initializable._keys) - set(self._initializable._keys)
-            for index in missing_other:
-                other._load_init_data(index * 0x1000, 1)
-
-            assert len(set(other._initializable._keys) - set(self._initializable._keys)) == 0
 
             ancestor_timestamp = common_ancestor.timestamp
             ancestor_timestamp_implicit = common_ancestor.timestamp_implicit
