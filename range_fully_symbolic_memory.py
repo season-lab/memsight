@@ -155,8 +155,8 @@ class MemoryItem(object):
 
         if (other is None
             or self.t != other.t
-            or (id(self.addr) != id(other.addr) and self.addr != other.addr)
-            or (id(self.guard) != id(other.guard) and self.guard != other.guard)
+            or id(self.addr) != id(other.addr)      # conservative
+            or id(self.guard) != id(other.guard)    # conservative
             or not self.obj.compare(other.obj)):
             return False
 
