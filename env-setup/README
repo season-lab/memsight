@@ -42,7 +42,7 @@ z3-solver==4.5.1.0
 
 # simuvex==5.6.12.3 can't be installed due to a bug in setup.py. Use the fixed version where simuvex_c stuff is not considered. Installed with:
 
-> pip install simuvex==5.6.12.3 angr==5.6.12.3 cle==5.6.12.3 pyvex==5.6.10.5
+> pip install simuvex==5.6.12.3 angr==5.6.12.3 cle==5.6.12.3 pyvex==5.6.10.5 claripy==5.6.12.3
 > pip install  --no-index --find-links=file://./simuvex-5.6.12.3.tgz simuvex
 
 # Veritesting (exploration techniques) does not mark as errored paths that are errored. Replace the original with ./veritesting.py
