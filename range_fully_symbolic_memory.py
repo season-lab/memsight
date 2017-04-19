@@ -90,63 +90,53 @@ def profile(func):
         return result
     return wrap
 
-class MemoryObject(object):
-
-    __slots__ = ('obj', 'offset', 'raw_byte')
-
-    def __init__(self, obj, offset):
-        self.obj = obj
-        self.offset = offset
-        self.raw_byte = None
-
-    def __repr__(self):
-        return "(" + str(self.obj) + " @ " + str(self.offset) + ")"
-
-    def get_byte(self):
-
-        if self.raw_byte is None:
-            self.raw_byte = utils.get_obj_bytes(self.obj, self.offset, 1)[0]
-            self.obj = self.raw_byte
-            self.offset = 0
-
-        return self.raw_byte
-
-    def compare(self, other):
-        if type(other) not in (MemoryObject,):
-            raise TypeError("Comparing " + str(type(self)) + " with " + str(type(other)) + " is not supported.")
-
-        if self.obj is not None and other.obj is not None:
-            if id(self.obj) == id(other.obj) and self.offset == other.offset:
-                return True
-            else:
-                return False
-        else:
-            if self.raw_byte is not None and other.raw_byte is not None and id(self.raw_byte) == id(other.raw_byte):
-                return True
-
-            a = self.get_byte()
-            b = other.get_byte()
-
-            if id(a) == id(b):
-                return True
-
-            if type(a) in (claripy.ast.bv.BV,) and type(b) in (claripy.ast.bv.BV,) and a == b:
-                return True
-
-            return False
-
 class MemoryItem(object):
 
-    __slots__ = ('addr', 'obj', 't', 'guard')
+    __slots__ = ('addr', '_obj', 't', 'guard')
 
     def __init__(self, addr, obj, t, guard):
         self.addr = addr
-        self.obj = obj
+        self._obj = obj
         self.t = t
         self.guard = guard
 
+    @property
+    def obj(self):
+        if type(self._obj) in (list,):
+            self._obj = utils.get_obj_bytes(self._obj[0], self._obj[1], 1)[0]
+        return self._obj
+
     def __repr__(self):
         return "[" + str(self.addr) + ", " + str(self.obj) + ", " + str(self.t) + ", " + str(self.guard) + "]"
+
+    def _compare_obj(self, other):
+
+        if id(self._obj) == id(other._obj):
+            return True
+
+        if type(self._obj) in (list,) and type(other._obj) in (list,) \
+            and id(self._obj[0]) == id(other._obj[0]) \
+            and self._obj[1] == self._obj[1]:
+                return True
+
+        if type(self._obj) in (list,):
+            if type(self._obj[0]) not in (claripy.ast.bv.BV,):
+                return False
+        elif type(self._obj) not in (claripy.ast.bv.BV,):
+                return False
+
+        if type(other._obj) in (list,):
+            if type(other._obj[0]) not in (claripy.ast.bv.BV,):
+                return False
+        elif type(other._obj) not in (claripy.ast.bv.BV,):
+                return False
+
+        a = self.obj
+        b = other.obj
+        if a == b:
+            return True
+
+        return False
 
     def __eq__(self, other):
 
@@ -325,7 +315,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     continue
 
                 e = (data[0] * 0x1000) + data[3] + j
-                v = MemoryObject(data[1], data[2] + j)
+                v = [data[1], data[2] + j]
                 self._concrete_memory[e] = MemoryItem(e, v, 0, None)
 
             to_remove.append(data)
@@ -478,7 +468,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     #if self.verbose: self.log("\tMatching formulas:" + str(P))
 
                     if min_addr == max_addr and len(P) == 1 and type(P[0].addr) in (long, int) and P[0].guard is None:
-                        obj = P[0].obj.get_byte()
+                        obj = P[0].obj
 
                     else:
 
@@ -486,9 +476,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                         if(self.category == 'mem' and
                                     simuvex.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY not in self.state.options):
+
                             # implicit store...
                             self.timestamp_implicit -= 1
-                            self._symbolic_memory.add(min_addr + k, max_addr + k + 1, MemoryItem(addr + k, MemoryObject(obj, 0), self.timestamp_implicit, None))
+                            self._symbolic_memory.add(min_addr + k, max_addr + k + 1, MemoryItem(addr + k, obj, self.timestamp_implicit, None))
 
                         if self.verbose: self.log("\tAdding ite cases: " + str(len(P)))
                         obj = self.build_merged_ite(addr + k, P, obj)
@@ -546,15 +537,14 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         for i in range(N):
 
             p = P[i]
-            v = p.obj.get_byte()
+            v = p.obj
 
-            # lookahead for merging
             is_good_candidate = type(p.addr) in (int, long) and p.guard is None
             mergeable = False
             if len(merged_p) > 0 and is_good_candidate \
                     and p.addr == merged_p[-1].addr + 1:
 
-                prev_v = merged_p[-1].obj.get_byte()
+                prev_v = merged_p[-1].obj
                 if v.op == 'BVV':
 
                     # both constant and equal
@@ -572,7 +562,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 if len(merged_p) > 0:
                     if self.verbose:
                         self.log("\tbuilding ite with " + str(len(merged_p)) + " case(s)")  # " + str(addrs))
-                    obj = self.build_ite(addr, merged_p, merged_p[-1].obj.get_byte(), obj)
+                    obj = self.build_ite(addr, merged_p, merged_p[-1].obj, obj)
                     merged_p = []
 
                 if is_good_candidate:
@@ -587,7 +577,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         if len(merged_p) > 0:
             if self.verbose: self.log("\tbuilding ite with " + str(len(merged_p)) + " case(s)")  #: "+ str(v))
-            obj = self.build_ite(addr, merged_p, merged_p[-1].obj.get_byte(), obj)
+            obj = self.build_ite(addr, merged_p, merged_p[-1].obj, obj)
 
         return obj
 
@@ -648,7 +638,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 for k in range(size):
 
-                    obj = MemoryObject(data, k)
+                    obj = [data, k] if size > 1 else data
 
                     if not internal:
                         if self.verbose: self.log("\tSlicing data with offset " + str(k))# + " => " + str(obj))
