@@ -1128,4 +1128,5 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             return count
 
         except Exception as e:
+
             pdb.set_trace()
