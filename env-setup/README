@@ -45,4 +45,16 @@ z3-solver==4.5.1.0
 > pip install simuvex==5.6.12.3 angr==5.6.12.3 cle==5.6.12.3 pyvex==5.6.10.5
 > pip install  --no-index --find-links=file://./simuvex-5.6.12.3.tgz simuvex
 
+# Veritesting (exploration techniques) does not mark as errored paths that are errored. Replace the original with ./veritesting.py
 
+> diff veritesting.py ~/.virtualenvs/angr/lib/python2.7/site-packages/angr/exploration_techniques/veritesting.py
+----- diff output
+20,22c20
+<             #return pg.active, pg.stashes.get('unconstrained', []), pg.stashes.get('unsat', []), [], []
+<             return pg.active, pg.stashes.get('unconstrained', []), pg.stashes.get('unsat', []), \
+<                    pg.stashes.get('pruned', []), pg.stashes.get('errored', [])
+---
+>             return pg.active, pg.stashes.get('unconstrained', []), pg.stashes.get('unsat', []), [], []
+---- end diff output
+
+> cp veritesting.py ~/.virtualenvs/angr/lib/python2.7/site-packages/angr/exploration_techniques/veritesting.py 
