@@ -1055,11 +1055,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     v_self = page_self[offset] if page_self is not None and offset in page_self else None
                     v_other = page_other[offset] if page_other is not None and offset in page_other else None
 
-                    if v_self is not None:
-                        assert v_self.addr == page_index * 0x1000 + offset
-                    if v_other is not None:
-                        assert v_other.addr == page_index * 0x1000 + offset
-
                     if type(v_self) not in (list,) and type(v_other) not in (list,):
                         same_value = v_self == v_other
                     else:
