@@ -1107,23 +1107,33 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             ancestor_timestamp = common_ancestor.timestamp
             ancestor_timestamp_implicit = common_ancestor.timestamp_implicit
 
-            P = self._symbolic_memory.search(0, sys.maxint)
-            for p in P:
-                assert p.data.t >= 0
-                if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
-                    guard = claripy.And(p.data.guard, merge_conditions[0]) if p.data.guard is not None else merge_conditions[0]
-                    i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
-                    self._symbolic_memory.update_item(p, i)
-                    count += 1
+            error = None
 
-            P = other._symbolic_memory.search(0, sys.maxint)
-            for p in P:
-                assert p.data.t >= 0
-                if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
-                    guard = claripy.And(p.data.guard, merge_conditions[1]) if p.data.guard is not None else merge_conditions[1]
-                    i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
-                    self._symbolic_memory.add(p.begin, p.end, i)
-                    count += 1
+            try:
+                P = self._symbolic_memory.search(0, sys.maxint)
+                for p in P:
+                    assert p.data.t >= 0
+                    if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                        guard = claripy.And(p.data.guard, merge_conditions[0]) if p.data.guard is not None else merge_conditions[0]
+                        i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
+                        self._symbolic_memory.update_item(p, i)
+                        count += 1
+            except Exception as e:
+                error = 1
+                pdb.set_trace()
+
+            try:
+                P = other._symbolic_memory.search(0, sys.maxint)
+                for p in P:
+                    assert p.data.t >= 0
+                    if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t < ancestor_timestamp_implicit):
+                        guard = claripy.And(p.data.guard, merge_conditions[1]) if p.data.guard is not None else merge_conditions[1]
+                        i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
+                        self._symbolic_memory.add(p.begin, p.end, i)
+                        count += 1
+            except Exception as e:
+                error = 2
+                pdb.set_trace()
 
             return count
 
