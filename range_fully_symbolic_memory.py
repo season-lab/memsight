@@ -629,8 +629,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             if self.state.se.symbolic(size):
                 print "Conditional-sized store: size=" + str(size)
                 conditional_size = [self.state.se.min_int(size), self.state.se.max_int(size)]
-                conditional_size = None
-                size = self.state.se.max_int(size)
+                #conditional_size = None
+                #size = self.state.se.max_int(size)
 
             # convert data to BVV if concrete
             data = utils.convert_to_ast(self.state, data, size if isinstance(size, (int, long)) else None)
