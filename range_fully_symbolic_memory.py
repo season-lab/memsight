@@ -278,12 +278,14 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     page_offset = 0
 
 
+        """
         # force load initialized bytes at the startup
         indexes = set(self._initializable._keys)
         for index in indexes:
             self._load_init_data(index * 0x1000, 1)
 
         assert len(self._initializable._keys) == 0
+        """
 
         self._initialized = True
 
@@ -1021,8 +1023,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             assert self._stack_range == other._stack_range
 
-            assert len(set(self._initializable._keys)) == 0
-            assert len(set(other._initializable._keys)) == 0
+            #assert len(set(self._initializable._keys)) == 0
+            #assert len(set(other._initializable._keys)) == 0
 
             missing_self = set(self._initializable._keys) - set(other._initializable._keys)
             for index in missing_self:
