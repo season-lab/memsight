@@ -348,6 +348,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         size = self._raw_ast(size)
         data = self._raw_ast(data)
 
+        if op == 'store':
+            data = self._convert_to_ast(data, size if isinstance(size, (int, long)) else None)
+
         reg_name = None
         if self._id == 'reg': 
 
@@ -384,7 +387,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         # make size concrete
         if size is not None:
-            min_size, max_size = self._resolve_size_range(size)
+            min_size, max_size = self._resolve_size_range(size, op)
             size = max_size
 
         # if addr is constant, make it concrete
@@ -464,7 +467,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 data = None
                 for k in range(size):
 
-                    if self.verbose: self.log("\tLoading from: " + str(hex(addr + k) if type(addr) in (long, int) else (addr + k)))
+                    #if self.verbose: self.log("\tLoading from: " + str(hex(addr + k) if type(addr) in (long, int) else (addr + k)))
 
                     P  = self._concrete_memory.find(min_addr + k, max_addr + k, True)
                     #assert len(P) == 0
@@ -619,7 +622,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             assert self._id == 'mem' or self._id == 'reg'
 
-            addr, size, reg_name = self.memory_op(addr, size, data)
+            addr, size, reg_name = self.memory_op(addr, size, data, op='store')
 
             # convert data to BVV if concrete
             data = utils.convert_to_ast(self.state, data, size if isinstance(size, (int, long)) else None)
@@ -721,8 +724,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                                )
                         self.state.log.add_action(action)
 
-                        if action is not None:
-                            action.actual_value = action._make_object(data)  # TODO
+                    if action is not None:
+                       action.actual_value = action._make_object(data)  # TODO
 
                 return
 
@@ -796,7 +799,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         pass
 
     @profile
-    def _resolve_size_range(self, size):
+    def _resolve_size_range(self, size, op=None):
 
         if not self.state.se.symbolic(size):
             i = self.state.se.any_int(size)
@@ -808,7 +811,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         min_size = self.state.se.min_int(size)
 
         # we do not support symbolic size yet...
-        if min_size != max_size:
+        if min_size != max_size and op == 'load':
             l.warning("Concretizing symbolic length. Much sad; think about implementing.")
             self.state.add_constraints(size == max_size, action=True)
 
@@ -817,6 +820,22 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             assert False # ToDo
 
         return min_size, min(max_size, self._maximum_symbolic_size)
+
+    def _convert_to_ast(self, data_e, size_e=None):
+        """
+        Make an AST out of concrete @data_e
+        """
+        if type(data_e) is str:
+            # Convert the string into a BVV, *regardless of endness*
+            bits = len(data_e) * 8
+            data_e = self.state.se.BVV(data_e, bits)
+        elif type(data_e) in (int, long):
+            data_e = self.state.se.BVV(data_e, size_e*8 if size_e is not None
+                                       else self.state.arch.bits)
+        else:
+            data_e = data_e.to_bv()
+
+        return data_e
 
     @property
     def category(self):
