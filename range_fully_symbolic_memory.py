@@ -342,7 +342,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             return a
 
     @profile
-    def memory_op(self, addr, size, data=None):
+    def memory_op(self, addr, size, data=None, op=None):
 
         addr = self._raw_ast(addr)
         size = self._raw_ast(size)
@@ -378,6 +378,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         # convert size to BVV if concrete
         if type(size) in (int, long):
             size = self.state.se.BVV(size, self.state.arch.bits)
+
+        if op == 'load' and size is None:
+            size = self.state.arch.bits / 8
 
         # make size concrete
         if size is not None:
@@ -426,7 +429,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         try:
 
-            if self.verbose: self.log("Loading at " + str(addr) + " " + str(size) + " bytes.")
+            if self.verbose: self.log("Loading " + str(size) + " bytes.")
 
             i_addr = addr
             i_size = size
@@ -436,7 +439,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             if condition is not None and self.state.se.is_false(condition):
                 return
 
-            addr, size, reg_name = self.memory_op(addr, size)        
+            addr, size, reg_name = self.memory_op(addr, size, op='load')
 
             if type(size) in (int, long):
 
@@ -495,6 +498,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 if condition is not None:
                     assert fallback is not None
+                    condition = self._raw_ast(condition)
+                    fallback = self._raw_ast(fallback)
                     data = self.state.se.If(condition, data, fallback)
 
                 # fix endness
@@ -505,7 +510,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 if not disable_actions:
                     if simuvex.o.AST_DEPS in self.state.options and self.category == 'reg':
-                        r = simuvex.SimActionObject(data, reg_deps=frozenset((addr,)))
+                        data = simuvex.SimActionObject(data, reg_deps=frozenset((addr,)))
 
                     if simuvex.o.AUTO_REFS in self.state.options and action is None:
                         ref_size = size if size is not None else (data.size() / 8)
@@ -608,7 +613,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         try:
 
             if not internal:
-                if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes.") # Content: " + str(data))
+                #if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes.") # Content: " + str(data))
+                if self.verbose: self.log("Storing " + str(size) + " bytes.")  # Content: " + str(data))
                 pass
 
             assert self._id == 'mem' or self._id == 'reg'
