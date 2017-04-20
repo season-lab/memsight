@@ -634,7 +634,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             if type(size) in (int, long) or conditional_size is not None:
 
-                assert len(data) / 8 == size
+                assert len(data) / 8 == (size if type(size) in (int, long) else conditional_size[1])
 
                 # simplify
                 data = self.state.se.simplify(data)
@@ -670,7 +670,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 for k in range(size if type(size) in (int, long) else conditional_size[1]):
 
-                    obj = [data, k] if size > 1 else data
+                    obj = [data, k] if type(size) in (int, long) and size > 1 else data
 
                     if conditional_size is not None and k + 1 >= conditional_size[0]:
                         assert k + 1 <= conditional_size[1]
