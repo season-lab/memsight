@@ -318,8 +318,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 e = (data[0] * 0x1000) + data[3] + j
                 v = [data[1], data[2] + j]
-                #self._concrete_memory[e] = MemoryItem(e, v, 0, None)
-                self._symbolic_memory.add(e, e + 1, MemoryItem(e, v, 0, None))
+                self._concrete_memory[e] = MemoryItem(e, v, 0, None)
+                #self._symbolic_memory.add(e, e + 1, MemoryItem(e, v, 0, None))
 
             to_remove.append(data)
             k += 1
@@ -464,7 +464,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     if self.verbose: self.log("\tLoading from: " + str(hex(addr + k) if type(addr) in (long, int) else (addr + k)))
 
                     P  = self._concrete_memory.find(min_addr + k, max_addr + k, True)
-                    assert len(P) == 0
+                    #assert len(P) == 0
 
                     P += [x.data for x in self._symbolic_memory.search(min_addr + k, max_addr + k + 1)]
                     P = sorted(P, key = lambda x : (x.t, (x.addr if type(x.addr) in (int, long) else 0)))
@@ -661,7 +661,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     inserted = False
                     constant_addr = min_addr == max_addr
 
-                    if constant_addr and False:
+                    if constant_addr:
 
                         P = self._concrete_memory[min_addr + k]
                         if P is None or condition is None:
@@ -1049,7 +1049,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             page_indexes  = set(self._concrete_memory._pages.keys())
             page_indexes |= set(other._concrete_memory._pages.keys())
 
-            assert len(page_indexes) == 0
+            #assert len(page_indexes) == 0
 
             for page_index in page_indexes:
 
@@ -1069,6 +1069,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     v_other = page_other[offset] if page_other is not None and offset in page_other else None
 
                     if type(v_self) not in (list,) and type(v_other) not in (list,):
+
+                        if v_self is not None and v_other is not None:
+                            assert v_self.addr == v_other.addr
+
                         same_value = v_self == v_other
                     else:
                         if type(v_self) != type(v_other):
@@ -1078,8 +1082,14 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         else:
                             same_value = True
                             for k in range(len(v_self)): # we only get equality when items are in the same order
+
                                 sub_v_self = v_self[k]
                                 sub_v_other = v_other[k]
+
+                                assert type(sub_v_self) not in (list,)
+                                assert type(sub_v_other) not in (list,)
+                                assert v_self.addr == v_other.addr
+
                                 if sub_v_self != sub_v_other:
                                     same_value = False
                                     break
@@ -1130,7 +1140,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 P = self._symbolic_memory.search(0, sys.maxint)
                 for p in P:
                     assert p.data.t >= 0
-                    if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t <= ancestor_timestamp_implicit):
+                    if True or (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t <= ancestor_timestamp_implicit):
                         guard = claripy.And(p.data.guard, merge_conditions[0]) if p.data.guard is not None else merge_conditions[0]
                         i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
                         self._symbolic_memory.update_item(p, i)
@@ -1143,7 +1153,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 P = other._symbolic_memory.search(0, sys.maxint)
                 for p in P:
                     assert p.data.t >= 0
-                    if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t <= ancestor_timestamp_implicit):
+                    if True or (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t <= ancestor_timestamp_implicit):
                         guard = claripy.And(p.data.guard, merge_conditions[1]) if p.data.guard is not None else merge_conditions[1]
                         i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
                         self._symbolic_memory.add(p.begin, p.end, i)
