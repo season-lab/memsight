@@ -676,7 +676,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                     if conditional_size is not None and k + 1 >= conditional_size[0]:
                         assert k + 1 <= conditional_size[1]
-                        condition = self.state.se.UGT(size, k + 1) if condition is None else claripy.And(condition, self.state.se.UGT(size, k + 1))
+                        condition = self.state.se.UGE(size, k + 1) if condition is None else claripy.And(condition, self.state.se.UGT(size, k + 1))
                         print "Adding condition: " + str(condition)
 
                     if not internal:
