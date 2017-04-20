@@ -627,10 +627,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             # store with conditional size
             conditional_size = None
             if self.state.se.symbolic(size):
-                print "Conditional-sized store: size=" + str(size)
                 conditional_size = [self.state.se.min_int(size), self.state.se.max_int(size)]
                 #conditional_size = None
                 #size = self.state.se.max_int(size)
+                print "Conditional-sized store: size=" + str(size) + " " + str(conditional_size)
 
             # convert data to BVV if concrete
             data = utils.convert_to_ast(self.state, data, size if isinstance(size, (int, long)) else None)
@@ -677,6 +677,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     if conditional_size is not None and k + 1 >= conditional_size[0]:
                         assert k + 1 <= conditional_size[1]
                         condition = self.state.se.UGT(size, k + 1) if condition is None else claripy.And(condition, self.state.se.UGT(size, k + 1))
+                        print "Adding condition: " + str(condition)
 
                     if not internal:
                         if self.verbose: self.log("\tSlicing data with offset " + str(k))# + " => " + str(obj))
