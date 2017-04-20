@@ -220,7 +220,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self.timestamp_implicit = timestamp_implicit
 
         self._concrete_memory = paged_memory.PagedMemory(self) if concrete_memory is None else concrete_memory
-        self._symbolic_memory = pitree.pitree() if symbolic_memory is None else symbolic_memory
+        self._symbolic_memory = untree.Untree() if symbolic_memory is None else symbolic_memory
 
         # some threshold
         self._maximum_symbolic_size = 8 * 1024
@@ -1009,7 +1009,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         count  = self._merge_concrete_memory(others[0], merge_conditions, common_ancestor)
         count += self._merge_symbolic_memory(others[0], merge_conditions, common_ancestor)
 
-        self.timestamp = max(self.timestamp, others[0].timestamp)
+        self.timestamp = max(self.timestamp, others[0].timestamp) + 1
         self.timestamp_implicit = min(self.timestamp_implicit, others[0].timestamp_implicit)
 
         return count
@@ -1057,8 +1057,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 page_other = other._concrete_memory._pages[page_index] if page_index in other._concrete_memory._pages else None
 
                 # shared page? if yes, do no touch it
-                if id(page_self) == id(page_other):
-                    continue
+                # if id(page_self) == id(page_other):
+                #    continue
 
                 offsets  = set(page_self.keys()) if page_self is not None else set()
                 offsets |= set(page_other.keys()) if page_other is not None else set()
@@ -1088,7 +1088,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                                 assert type(sub_v_self) not in (list,)
                                 assert type(sub_v_other) not in (list,)
-                                assert v_self.addr == v_other.addr
+                                assert sub_v_self.addr == sub_v_other.addr
 
                                 if sub_v_self != sub_v_other:
                                     same_value = False
