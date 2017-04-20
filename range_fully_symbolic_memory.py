@@ -811,9 +811,13 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         min_size = self.state.se.min_int(size)
 
         # we do not support symbolic size yet...
-        if min_size != max_size and op == 'load':
-            l.warning("Concretizing symbolic length. Much sad; think about implementing.")
-            self.state.add_constraints(size == max_size, action=True)
+        if min_size != max_size:
+
+            if op == 'load':
+                l.warning("Concretizing symbolic length. Much sad; think about implementing.")
+                self.state.add_constraints(size == max_size, action=True)
+            else:
+                assert False
 
         if min_size > self._maximum_symbolic_size:
             min_size = self._maximum_symbolic_size
