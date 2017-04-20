@@ -666,9 +666,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 self.timestamp += 1
 
-                if size == 1:
-                    assert len(data) == 8
-
                 for k in range(size if type(size) in (int, long) else conditional_size[1]):
 
                     obj = [data, k] if type(size) in (int, long) and size > 1 else data
