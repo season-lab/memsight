@@ -493,6 +493,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     if self.verbose: self.log("\tappending data") #: " + str(obj))
                     data = self.state.se.Concat(data, obj) if data is not None else obj
 
+                if condition is not None:
+                    assert fallback is not None
+                    data = self.state.se.If(condition, data, fallback)
+
                 # fix endness
                 endness = self._endness if endness is None else endness
                 if not ignore_endness and endness == "Iend_LE":
@@ -514,11 +518,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                                condition=condition, fallback=fallback)
                         self.state.log.add_action(action)
 
-                if self.verbose: self.log("\treturning data: " + str(data))
-
-                if condition is not None:
-                    assert fallback is not None
-                    data = self.state.se.If(condition, data, fallback)
+                #if self.verbose: self.log("\treturning data: " + str(data))
 
                 return data
 
@@ -608,7 +608,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         try:
 
             if not internal:
-                if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
+                if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes.") # Content: " + str(data))
                 pass
 
             assert self._id == 'mem' or self._id == 'reg'
@@ -651,6 +651,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                 self.timestamp += 1
 
+                if size == 1:
+                    assert len(data) == 8
+
                 for k in range(size):
 
                     obj = [data, k] if size > 1 else data
@@ -663,6 +666,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                     if constant_addr:
 
+                        assert addr == min_addr
                         P = self._concrete_memory[min_addr + k]
                         if P is None or condition is None:
                             if self.verbose: self.log("\tAdding/Updating concrete address...")
