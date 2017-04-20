@@ -387,8 +387,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         # make size concrete
         if size is not None:
-            min_size, max_size = self._resolve_size_range(size, op)
-            size = max_size
+            _, _, size = self._resolve_size(size, op)
 
         # if addr is constant, make it concrete
         if type(addr) in (claripy.ast.bv.BV,) and not addr.symbolic:
@@ -443,6 +442,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 return
 
             addr, size, reg_name = self.memory_op(addr, size, op='load')
+            assert not self.state.se.symbolic(size)
 
             if type(size) in (int, long):
 
@@ -624,10 +624,15 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             addr, size, reg_name = self.memory_op(addr, size, data, op='store')
 
+            # store with conditional size
+            conditional_size = None
+            if self.state.se.symbolic(size):
+                conditional_size = [self.state.se.min_int(size), self.state.se.max_int(size)]
+
             # convert data to BVV if concrete
             data = utils.convert_to_ast(self.state, data, size if isinstance(size, (int, long)) else None)
 
-            if type(size) in (int, long):
+            if type(size) in (int, long) or conditional_size is not None:
 
                 assert len(data) / 8 == size
 
@@ -663,9 +668,13 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 if size == 1:
                     assert len(data) == 8
 
-                for k in range(size):
+                for k in range(size if type(size) in (int, long) else conditional_size[1]):
 
                     obj = [data, k] if size > 1 else data
+
+                    if conditional_size is not None and k + 1 >= conditional_size[0]:
+                        assert k + 1 <= conditional_size[1]
+                        condition = self.state.se.UGT(size, k + 1)
 
                     if not internal:
                         if self.verbose: self.log("\tSlicing data with offset " + str(k))# + " => " + str(obj))
@@ -799,31 +808,27 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         pass
 
     @profile
-    def _resolve_size_range(self, size, op=None):
+    def _resolve_size(self, size, op=None):
 
         if not self.state.se.symbolic(size):
-            i = self.state.se.any_int(size)
-            if i > self._maximum_concrete_size:
-                raise simuvex.SimMemoryLimitError("Concrete size %d outside of allowable limits" % i)
-            return i, i
+            concrete_size = self.state.se.any_int(size)
+            if concrete_size > self._maximum_concrete_size:
+                raise simuvex.SimMemoryLimitError("Concrete size %d outside of allowable limits" % concrete_size)
+            return concrete_size, concrete_size, concrete_size
 
         max_size = self.state.se.max_int(size)
         min_size = self.state.se.min_int(size)
 
-        # we do not support symbolic size yet...
         if min_size != max_size:
-
-            if op == 'load':
+            if op == 'load': # we do not support, similarly to angr, symbolic size yet...
                 l.warning("Concretizing symbolic length. Much sad; think about implementing.")
                 self.state.add_constraints(size == max_size, action=True)
-            else:
-                assert False
+                size = max_size
 
-        if min_size > self._maximum_symbolic_size:
-            min_size = self._maximum_symbolic_size
+        if min_size > self._maximum_symbolic_size or max_size > self._maximum_symbolic_size:
             assert False # ToDo
 
-        return min_size, min(max_size, self._maximum_symbolic_size)
+        return min_size, max_size, size
 
     def _convert_to_ast(self, data_e, size_e=None):
         """
