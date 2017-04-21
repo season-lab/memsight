@@ -37,4 +37,25 @@ def do_start(state):
 
 def do_end(state, params, pg):
 	print state.se.any_str(params['arg'])
+	arg = params['arg'][1023 : 1024 - (8 * 7)]
+	#assert len(state.se.any_n_str(arg, 25000)) == 6400
+
+	sol = [
+		[121L, 105L, 89L, 73L],
+		[63L, 127L, 79L, 111L, 95L],
+		[126L, 110L, 94L, 62L, 78L],
+		[85L, 117L, 69L, 101L],
+		[118L, 102L, 70L, 86L],
+		[71L, 87L, 119L, 103L],
+		[0],
+	]
+
+	k = 0
+	for b in params['arg'].chop(8):
+		s = state.se.any_n_int(b, 256)
+		assert set(s) == set(sol[k])
+		if len(s) == 1 and s[0] == 0:
+			break
+		k += 1
+
 	#print state.se.constraints
