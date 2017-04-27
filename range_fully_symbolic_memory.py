@@ -453,13 +453,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     min_addr = addr
                     max_addr = addr
 
-                    if max_addr - min_addr > 2048:
-                        v = self.state.se.any_int(addr)
-                        self.state.se.add(addr == v)
-                        addr = v
-                        min_addr = addr
-                        max_addr = addr
-
                 # symbolic addr
                 else:
                     min_addr = self.state.se.min_int(addr)
