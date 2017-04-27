@@ -39,6 +39,7 @@ def update_counter(elapsed, f):
     
     count_ops += 1
     if count_ops > 0 and count_ops % 10000 == 0:
+        return
         print
         print "Profiling stats:" # at depth=" + str(depth) + ":"
         for ff in time_profile:
@@ -211,6 +212,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         simuvex.plugins.plugin.SimStatePlugin.__init__(self)
 
         self._memory_backer = memory_backer
+        #assert not permissions_backer[0]
         self._permissions_backer = permissions_backer
         self._id = kind
         self._arch = arch
@@ -608,15 +610,17 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         condition = self._raw_ast(condition)
         condition = self.state._adjust_condition(condition)
 
-        if condition is not None and type(condition) in (claripy.ast.bool.Bool,):
-            if condition.args[0]:
+        if condition is not None:
+            if self.state.se.is_true(condition):
                 condition = None
-            else:
+            elif self.state.se.is_false(condition):
                 return
 
         if condition is not None:
             #self.verbose = True
-            self.log("\tcondition: " + str(condition))
+            print
+            print "condition: " + str(condition)
+            print
 
         global n_ite
 
@@ -669,13 +673,6 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                     max_addr = self.state.se.max_int(addr)
                     if min_addr == max_addr:
                         addr = min_addr
-
-                    if max_addr - min_addr > 2048:
-                        v = self.state.se.max_int(addr)
-                        self.state.se.add(addr == v)
-                        addr = v
-                        min_addr = addr
-                        max_addr = addr
 
                 # check permissions
                 self.check_sigsegv_and_refine(addr, min_addr, max_addr, True)
@@ -990,8 +987,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             if addr >= region.addr and addr <= region.addr + region.length:
                 return region.permissions
 
-        # Unmapped region?
-        assert False
+        # Unmapped region: angr treats it as RW region
+        raise simuvex.s_errors.SimMemoryError("page does not exist at given address")
+
+         # claripy.BVV(MappedRegion.PROT_READ | MappedRegion.PROT_WRITE, 3)
 
     @profile
     def check_sigsegv_and_refine(self, addr, min_addr, max_addr, write_access):
@@ -1114,8 +1113,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 page_other = other._concrete_memory._pages[page_index] if page_index in other._concrete_memory._pages else None
 
                 # shared page? if yes, do no touch it
-                # if id(page_self) == id(page_other):
-                #    continue
+                if id(page_self) == id(page_other):
+                    continue
 
                 offsets  = set(page_self.keys()) if page_self is not None else set()
                 offsets |= set(page_other.keys()) if page_other is not None else set()
@@ -1197,7 +1196,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 P = self._symbolic_memory.search(0, sys.maxint)
                 for p in P:
                     assert p.data.t >= 0
-                    if True or (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t <= ancestor_timestamp_implicit):
+                    if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t <= ancestor_timestamp_implicit):
                         guard = claripy.And(p.data.guard, merge_conditions[0]) if p.data.guard is not None else merge_conditions[0]
                         i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
                         self._symbolic_memory.update_item(p, i)
@@ -1210,7 +1209,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 P = other._symbolic_memory.search(0, sys.maxint)
                 for p in P:
                     assert p.data.t >= 0
-                    if True or (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t <= ancestor_timestamp_implicit):
+                    if (p.data.t > 0 and p.data.t >= ancestor_timestamp) or (p.data.t < 0 and p.data.t <= ancestor_timestamp_implicit):
                         guard = claripy.And(p.data.guard, merge_conditions[1]) if p.data.guard is not None else merge_conditions[1]
                         i = MemoryItem(p.data.addr, p.data.obj, p.data.t, guard)
                         self._symbolic_memory.add(p.begin, p.end, i)
