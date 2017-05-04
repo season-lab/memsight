@@ -16,7 +16,7 @@ class Executor(object):
 
         print
         print "Starting symbolic execution of binary: " + str(binary)
-        print "From address: " + str(hex(self.start))
+        print "From address: " + str(hex(self.start) if self.start is not None else 'NONE')
         print "Target addresses: " + ' '.join(map(lambda a: str(hex(a)), self.end))
         print "Avoid addresses: " + ' '.join(map(lambda a: str(hex(a)), self.avoid))
         print
@@ -78,10 +78,17 @@ class Executor(object):
             plugins['memory'] = mem_memory
         if reg_memory is not None:
             plugins['registers'] = reg_memory
+        if len(plugins) == 0:
+            plugins = None
 
-        add_options = {None}
-        #add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY}
-        state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, add_options=add_options, plugins=plugins)
+        add_options = None
+        add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY, simuvex.o.SYMBOLIC_WRITE_ADDRESSES}
+
+        if self.start is not None:
+            state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, add_options=add_options, plugins=plugins)
+        else:
+            state = self.project.factory.entry_state(remove_options={simuvex.o.LAZY_SOLVES},
+                                                     add_options=add_options, plugins=plugins)
 
         data = self.config.do_start(state)
 
@@ -102,8 +109,8 @@ class Executor(object):
 
     def run(self, mem_memory = None, reg_memory = None):
 
-        mem_memory.verbose = False
-        reg_memory.verbose = False
+        #mem_memory.verbose = False
+        #reg_memory.verbose = False
         pg, data, veritesting, max_rounds = self._common_run(mem_memory, reg_memory)
 
         k = 0
@@ -114,10 +121,16 @@ class Executor(object):
 
             k += 1
 
-            print pg
+            #print pg
+
+            #assert len(pg.active) == 1
+            #print str(k) + "\t" + hex(pg.active[0].state.ip.args[0])
 
             # step 1 basic block for each active path
             # if veritesting is on: this will step more than one 1 BB!
+            sys.stdout.write("depth=" + str(k) + " ")
+            print pg
+
             pg.explore(avoid=self.avoid, find=self.end, n=1)
 
             # Bazinga!
@@ -130,7 +143,10 @@ class Executor(object):
             state = pg.found[0].state
             self.config.do_end(state, data, pg)
 
-        assert len(pg.found) > 0
+        print pg.active
+        print pg.avoid
+
+        #assert len(pg.found) > 0
         print
         print "Memory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
 
@@ -182,6 +198,7 @@ class Executor(object):
             #pdb.set_trace()    
 
             print pg
+            print pg.active
 
             print "# Start of execution"
             if not veritesting:
