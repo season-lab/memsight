@@ -171,21 +171,17 @@ class MappedRegion(object):
         self.length = length
         self.permissions = permissions
 
-
     def __repr__(self):
         rwx_s  = "r" if self.is_readable() else ''
         rwx_s += "w" if self.is_writable() else ''
         rwx_s += "x" if self.is_executable() else ''
         return "(" + str(hex(self.addr)) + ", " + str(hex(self.addr + self.length)) + ") [" + rwx_s +"]"
 
-
     def is_readable(self):
         return self.permissions.args[0] & MappedRegion.PROT_READ
 
-
     def is_writable(self):
         return self.permissions.args[0] & MappedRegion.PROT_WRITE    
-
 
     def is_executable(self):
         return self.permissions.args[0] & MappedRegion.PROT_EXEC
@@ -243,6 +239,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
         self._initializable = initializable if initializable is not None else sorted_collection.SortedCollection(key=lambda x: x[0])
         self._initialized = initialized
+
+        # required by CGC deallocate()
+        self._page_size = self._concrete_memory.PAGE_SIZE
 
         self.angr_memory = angr_memory
         if self.angr_memory is None:
