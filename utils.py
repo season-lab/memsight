@@ -106,7 +106,7 @@ def reverse_addr_reg(memory, addr):
 
     assert False
 
-def full_stack(self):
+def full_stack():
 
     import traceback, sys
     exc = sys.exc_info()[0]
