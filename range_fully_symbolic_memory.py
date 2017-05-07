@@ -222,6 +222,12 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             #self.angr_memory = simuvex.plugins.SimSymbolicMemory(memory_backer=memory_backer, permissions_backer=permissions_backer, memory_id='mem')
             pass
 
+    @property
+    def _pages(self):
+        # required by CGC deallocate()
+        # this is not correct
+        return self._concrete_memory._pages
+
     def _init_memory(self):
 
         if self._initialized:
