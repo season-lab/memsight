@@ -163,16 +163,16 @@ class pitree:
             if (s.max_range       > max_range):       max_range       = s.max_range
         print "[pitree] tot size=%d bytes"          % tot_size                  + \
                      ", num trees=%d"               % n                         + \
-                     ", of which lazy=%3.0f%%"      % (100.0*tot_lazy_trees/n)  + \
+                     ", of which lazy=%3.0f%%"      % ((100.0*tot_lazy_trees/n) if n > 0 else 0)  + \
                      ", avg pages per tree=%d"      % (tot_pages/n)             + \
                      ", max pages per tree=%d"      % max_pages                 + \
-                     ", avg ints per tree=%d"       % (tot_intervals/n)         + \
+                     ", avg ints per tree=%d"       % (tot_intervals/n if n > 0 else 0)         + \
                      ", max ints per tree=%d"       % max_intervals             + \
-                     ", avg 1-ints per tree=%d"     % (tot_1_intervals/n)       + \
+                     ", avg 1-ints per tree=%d"     % (tot_1_intervals/n if n > 0 else 0)       + \
                      ", max 1-ints per tree=%d"     % max_1_intervals           + \
-                     ", avg lazy pages per tree=%d" % (tot_lazy_pages/n)        + \
+                     ", avg lazy pages per tree=%d" % (tot_lazy_pages/n if n > 0 else 0)        + \
                      ", max page size=%d"           % max_page_size             + \
-                     ", avg range=%d"               % (tot_range/tot_intervals) + \
+                     ", avg range=%d"               % (tot_range/tot_intervals if tot_intervals != 0 else 0) + \
                      ", max range=%d"               % max_range                 + \
                      ", tot ints=%d"                % tot_intervals             + \
                      ""
