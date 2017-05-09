@@ -135,6 +135,10 @@ class pitree:
 
     @classmethod
     def print_stats(cls, stats_list):
+
+        if len(stats_list) == 0:
+            return
+
         max_pages       = 0
         max_intervals   = 0
         max_1_intervals = 0
