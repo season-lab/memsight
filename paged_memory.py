@@ -67,7 +67,39 @@ class PagedMemory(object):
 
     def find(self, start, end, result_is_flat_list=False):
 
-        #self._check_access(None, start, end, self.ACCESS_READ)
+        """
+        assert result_is_flat_list
+        values = []
+
+        addr = start
+        index, offset = self._get_index_offset(addr)
+        while addr <= end:
+
+            if index not in self._pages:
+                addr += self.PAGE_SIZE - offset
+                assert addr % self.PAGE_SIZE == 0
+                offset = 0
+                index += 1
+                continue
+
+            if offset in self._pages[index]:
+                v = self._pages[index][offset]
+                if type(v) in (list,):
+                    for vv in v:
+                        assert type(vv) not in (list,)
+                        values.append(vv)
+                else:
+                    values.append(v)
+
+            addr += 1
+            offset += 1
+            if offset >= self.PAGE_SIZE:
+                assert addr % self.PAGE_SIZE == 0
+                offset = 0
+                index += 1
+
+
+        """
         if result_is_flat_list:
             values = []
         else:

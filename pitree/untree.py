@@ -71,6 +71,13 @@ class Untree(object):
     def _intersect(self, a_min, a_max, b_min, b_max):
         return min(a_max, b_max) - max(a_min, b_min) > 0
 
+    def get_stats(self):
+        return None
+
+    @staticmethod
+    def print_stats(cls, data):
+        return
+
 
 class UntreeItem(object):
     __slots__ = ('begin', 'end', 'data', 'index')

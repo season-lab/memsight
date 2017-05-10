@@ -18,6 +18,7 @@ import utils
 from pitree import pitree
 from pitree import untree
 import paged_memory
+import unpaged_memory
 
 l = logging.getLogger('naiveFullySymbolicMemory')
 l.setLevel(logging.DEBUG)
@@ -111,8 +112,8 @@ class MemoryItem(object):
 
         a = self.obj
         b = other.obj
-        if a == b:
-            return True
+        if a.op == 'BVV' and b.op == 'BVV':
+            return a.args[0] == b.args[0]
 
         return False
 
@@ -123,9 +124,10 @@ class MemoryItem(object):
 
         if (other is None
             or self.t != other.t
-            or id(self.addr) != id(other.addr)      # conservative
+            # or (type(self.addr) in (int, long) and type(other.addr) in (int, long) and self.addr != other.addr)
+            or (type(self.obj) in (int, long) and type(other.obj) in (int, long) and self.obj != other.obj)
             or id(self.guard) != id(other.guard)    # conservative
-            or not self.obj.compare(other.obj)):
+            or not self._compare_obj(other)):
             return False
 
         return True
@@ -418,6 +420,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     @profile
     def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None, inspect=True, ignore_endness=False, priv=None, disable_actions=False, internal=False):
 
+        if not internal:
+            #self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='pre_load')
+            pass
+
         o_addr = addr
         o_size = size
 
@@ -555,7 +561,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         self.state.log.add_action(action)
 
                     if action is not None:
-                        action.actual_addrs = [x for x in range(min_addr, max_addr + self.state.se.max_int(size))]
+                        #action.actual_addrs = [x for x in range(min_addr, max_addr + self.state.se.max_int(size))]
                         action.added_constraints = action._make_object(self.state.se.true)
 
                 #if self.verbose: self.log("\treturning data: " + str(data))
@@ -570,6 +576,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                             print "Mismatch at offset " + str(k)
                             import pdb
                             pdb.set_trace()
+
+                    #self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='post_load')
 
                 return data
 
@@ -639,6 +647,10 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
     @profile
     def store(self, addr, data, size=None, condition=None, add_constraints=None, endness=None, action=None, inspect=True, priv=None, ignore_endness=False, internal=False, disable_actions=False):
+
+        if not internal:
+            #self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='pre_store')
+            pass
 
         if not internal:
             #if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
@@ -818,7 +830,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                     if action is not None:
 
-                        action.actual_addrs = [x for x in range(min_addr, max_addr + self.state.se.max_int(size))]
+                        #action.actual_addrs = [x for x in range(min_addr, max_addr + self.state.se.max_int(size))]
                         action.actual_value = action._make_object(data)  # TODO
                         if conditional_size is not None:
                             action.added_constraints = action._make_object(self.state.se.ULE(size, conditional_size[1]))
@@ -845,6 +857,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         addrs = list(addrs)
                         """
                         self._compare_with_angr(addrs, op='store')
+                        #self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='post_store')
 
                     except Exception as e:
                         pdb.set_trace()
@@ -971,6 +984,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     @profile
     def copy(self):
 
+        #self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='pre_copy')
+
         if self.verbose: self.log("Copying memory")
         s = SymbolicMemory(memory_backer=self._memory_backer,
                                 permissions_backer=self._permissions_backer, 
@@ -989,6 +1004,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                 timestamp_implicit=self.timestamp_implicit,
                                 angr_memory=self.angr_memory.copy() if self.angr_memory is not None else None)
 
+        #self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='post_copy')
         s._concrete_memory = self._concrete_memory.copy(s)
         return s
 
@@ -1068,7 +1084,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     def map_region(self, addr, length, permissions, internal=False):
 
         if not internal:
-            #self._compare_with_angr([3131747970], op='map_region_pre')
+            #self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='map_region_pre')
             pass
 
         if self.angr_memory is not None and not internal:
@@ -1099,12 +1115,31 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self._mapped_regions = sorted(self._mapped_regions, key=lambda x: x.addr)
 
         if not internal:
-            #self._compare_with_angr([3131747970], op='map_region_post')
+            #self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='map_region_post')
             pass
 
     @profile
     def unmap_region(self, addr, length):
-        assert False
+
+        if self.state.se.symbolic(addr):
+            raise simuvex.SimMemoryError("cannot unmap region with a symbolic address")
+
+        if isinstance(addr, claripy.ast.bv.BV):
+            addr = self.state.se.max_int(addr)
+
+        self.timestamp += 1
+        for a in range(addr, addr + length):
+            self._concrete_memory[a] = MemoryItem(a, 0x0, self.timestamp, None)
+
+        # remove from mapped regions
+        for k in range(len(self._mapped_regions)):
+            region = self._mapped_regions[k]
+            if region.addr == addr:
+                assert region.length == length
+                del self._mapped_regions[k]
+                break
+
+        return
 
     @profile
     def permissions(self, addr):
@@ -1129,7 +1164,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         for region in self._mapped_regions:
             if addr >= region.addr and addr <= region.addr + region.length:
                 assert res_angr is None or self.state.se.any_n_int(res_angr, 10) == self.state.se.any_n_int(region.permissions, 10)
-                self._compare_with_angr([3131747970], op='perm_post')
+                #self._compare_with_angr([3131747970], op='perm_post')
                 return region.permissions
 
         # Unmapped region: angr treats it as RW region
@@ -1203,6 +1238,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
     @profile
     def merge(self, others, merge_conditions, common_ancestor=None):
 
+        #print "Merging..."
+        #print merge_conditions
+
         if self.angr_memory is not None:
             self._compare_with_angr(op='pre_merge')
             others[0]._compare_with_angr(op='pre_merge_other')
@@ -1222,13 +1260,17 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
         self.timestamp = max(self.timestamp, others[0].timestamp) + 1
         self.timestamp_implicit = min(self.timestamp_implicit, others[0].timestamp_implicit)
 
+        return count
+
+    def post_merge(self):
+        #print "POST MERGE"
         if self.angr_memory is not None:
             self._compare_with_angr(op='merge')
 
-        return count
-
     @profile
     def _merge_concrete_memory(self, other, merge_conditions, common_ancestor, verbose=False):
+
+        #pdb.set_trace()
 
         try:
 
@@ -1266,6 +1308,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             for page_index in page_indexes:
 
+                #print "merging next page..."
+
                 page_self = self._concrete_memory._pages[page_index] if page_index in self._concrete_memory._pages else None
                 page_other = other._concrete_memory._pages[page_index] if page_index in other._concrete_memory._pages else None
 
@@ -1285,6 +1329,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
                         if v_self is not None and v_other is not None:
                             assert v_self.addr == v_other.addr
+                            pass
 
                         same_value = v_self == v_other
                     else:
@@ -1307,6 +1352,20 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                                     same_value = False
                                     break
 
+                    # self has an initialized value that is missing in other
+                    # we can keep as it is.
+                    if v_other is None and v_self is not None and type(v_self) is not (list,) and v_self.t == 0 and v_self.guard is None:
+                        same_value = True
+
+                    # Symmetric case. We need to insert in self.
+                    if v_self is None and v_other is not None and type(v_other) is not (list,) and v_other.t == 0 and v_other.guard is None:
+                        self._concrete_memory[page_index * 0x1000 + offset] = v_other
+                        same_value = True
+
+                    if page_index * 0x1000 + offset == 134561792:
+                        #pdb.set_trace()
+                        pass
+
                     if not same_value:
                         count += 1
                         merged_value = self._copy_symbolic_items_and_apply_guard(v_self, merge_conditions[0]) \
@@ -1314,6 +1373,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                         assert len(merged_value) > 0
                         self._concrete_memory[page_index * 0x1000 + offset] = merged_value if len(merged_value) > 1 else merged_value[0]
 
+            #pdb.set_trace()
             return count
 
         except Exception as e:
@@ -1397,7 +1457,8 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 # Note: This check may fail. Indeed, we may have written
                 #       an address even if this was not 
                 #       addressable since we are not getting actual 
-                #       solutions for an address
+                #       solutions for an address. Even if the address is symbolic
+                #       this could have forced loading of init data.
                 addrs2 = set()
                 for i, p in self._concrete_memory._pages.items():
                     addrs2.update([k + i * 0x1000 for k in p.keys()])
@@ -1415,6 +1476,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
 
             # for addr check value
             for a in addrs:
+
+                #if (a / 0x1000) not in self.angr_memory.mem._pages or (a % 0x1000) not in self.angr_memory.mem._pages[a / 0x1000]._storage:
+                #    continue
 
                 if self.verbose: print "\t\tComparing addr: " + hex(a)
 
