@@ -11,11 +11,11 @@ RUN useradd -m ubuntu && \
 USER ubuntu
 WORKDIR /home/ubuntu
 
-COPY angr-fsm /home/ubuntu/angr-fsm
+COPY fully-symbolic-memory /home/ubuntu/fully-symbolic-memory
 COPY CGC /home/ubuntu/CGC
 
-RUN cd /home/ubuntu/angr-fsm/env-setup && \
+RUN cd /home/ubuntu/fully-symbolic-memory/env-setup && \
  sudo chown ubuntu:ubuntu -R ../ && \
  sudo pip install simuvex==5.6.12.3 angr==5.6.12.3 cle==5.6.12.3 pyvex==5.6.10.5 claripy==5.6.12.3 bitstring namedlist sortedcontainers pympler && \
- sudo pip install --no-index --find-links=/home/ubuntu/angr-fsm/env-setup/simuvex-5.6.12.3.tgz simuvex && \
+ sudo pip install --no-index --find-links=/home/ubuntu/fully-symbolic-memory/env-setup/simuvex-5.6.12.3.tgz simuvex && \
  sudo patch /usr/local/lib/python2.7/dist-packages/angr/exploration_techniques/veritesting.py veritesting.patch
