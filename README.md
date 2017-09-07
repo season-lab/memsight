@@ -12,7 +12,7 @@ This repository contains an implemenation of `MemSight` based on `angr`. The ide
 - `naive_fully_symbolic_memory.py`: a naive implementation of a fully symbolic memory (see: [pseudocode/naive-v3](pseudocode/naive-v3/main.pdf))
 - `range_fully_symbolic_memory.py`: MEMSIGHT (see: [pseudocode/naive-v3](pseudocode/naive-v4/main.pdf) and the ASE paper)
 - `utils.py`: other useful stuff
-- `pitree`: page interval tree implementation
+- `pitree/`: page interval tree implementation
 - `tests/`: testing binaries
 
 ## Requirements
