@@ -17,7 +17,7 @@ This repository contains an implemenation of `MemSight` based on `angr`. The ide
 
 ## Requirements
 
-This code works with `angr` 5.6.x. Check out the docker [image](https://hub.docker.com/r/ercoppa/angr-fsm-0.1/) to get a working environment with `MemSight` and the CGC binaries.
+This code works with `angr` 5.6.x. Check out the docker [image](https://hub.docker.com/r/ercoppa/angr-fsm-0.1/) to get a working environment based on Ubuntu 16.04 with `MemSight` and the CGC binaries.
 
 ## How to run
 Line-by-line symbolic execution can be started with:
