@@ -1,6 +1,6 @@
 ## Overview
 
-This repository contains an implemenation of `MemSight` based on `angr`. The ideas behind `MemSight` have been presented in the paper "Rethinking Pointer Reasoning in Symbolic Execution" accepted at ASE 2017.
+This repository contains an implemenation of `MemSight` based on `angr`. The ideas behind `MemSight` have been presented in the paper "Rethinking Pointer Reasoning in Symbolic Execution" accepted at ASE 2017. A èreprint of the paper is available [here](https://github.com/season-lab/memsight/raw/master/publications/memsight-ase17.pdf).
 
 - `explore.py`: main script, line-by-line exploration
 - `run.py`: main script, non line-by-line exploration
