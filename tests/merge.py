@@ -19,7 +19,7 @@ def do_start(state):
 def do_end(state, params, pg):
 
 	o = state.se.Concat(params['edi'], state.regs.eax)
-	sol = state.se.any_n_int(o, 10)
+	sol = state.se.eval_upto(o, 10)
 	import ctypes
 	eax = []
 	edi = []

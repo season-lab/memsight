@@ -4,7 +4,6 @@ import struct
 import claripy
 import resource
 import pdb
-import simuvex
 import sys
 import os
 import pyvex
@@ -15,7 +14,7 @@ import bisect
 l = logging.getLogger('angrSymbolicMemory')
 l.setLevel(logging.DEBUG)
 
-class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
+class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
 
     def __init__(self, memory_backer=None, 
                 permissions_backer=None, 
@@ -24,7 +23,7 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
                 endness=None, 
                 check_permissions=None,
                 angr_memory=None):
-        simuvex.plugins.plugin.SimStatePlugin.__init__(self)
+        angr.state_plugins.plugin.SimStatePlugin.__init__(self)
 
         self.verbose = False
 
@@ -33,9 +32,9 @@ class SymbolicMemory(simuvex.plugins.plugin.SimStatePlugin):
             return
 
         if kind == 'mem':
-            self._angr_memory = simuvex.plugins.SimSymbolicMemory(memory_backer=memory_backer, permissions_backer=permissions_backer, memory_id='mem')
+            self._angr_memory = angr.state_plugins.SimSymbolicMemory(memory_backer=memory_backer, permissions_backer=permissions_backer, memory_id='mem')
         elif kind == 'reg':
-            self._angr_memory = simuvex.plugins.SimSymbolicMemory(memory_id="reg", endness=arch.register_endness)
+            self._angr_memory = angr.state_plugins.SimSymbolicMemory(memory_id="reg", endness=arch.register_endness)
 
     def set_state(self, state):
         self._angr_memory.set_state(state) 

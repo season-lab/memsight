@@ -1,6 +1,5 @@
 import bisect
 
-import simuvex
 import utils
 
 class PagedMemory(object):

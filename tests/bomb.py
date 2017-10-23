@@ -52,7 +52,7 @@ def do_end(state, params, pg):
 
 	k = 0
 	for b in params['arg'].chop(8):
-		s = state.se.any_n_int(b, 256)
+		s = state.se.eval_upto(b, 256)
 		assert set(s) == set(sol[k])
 		if len(s) == 1 and s[0] == 0:
 			break

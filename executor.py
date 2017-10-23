@@ -3,7 +3,6 @@ import resource
 import executor_config
 import angr
 import sys
-import simuvex
 import pyvex
 import pdb
 import logging
@@ -82,12 +81,12 @@ class Executor(object):
             plugins = None
 
         add_options = None
-        add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY, simuvex.o.SYMBOLIC_WRITE_ADDRESSES}
+        add_options = {angr.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY, angr.options.SYMBOLIC_WRITE_ADDRESSES}
 
         if self.start is not None:
-            state = self.project.factory.blank_state(addr=self.start, remove_options={simuvex.o.LAZY_SOLVES}, add_options=add_options, plugins=plugins)
+            state = self.project.factory.blank_state(addr=self.start, remove_options={angr.options.LAZY_SOLVES}, add_options=add_options, plugins=plugins)
         else:
-            state = self.project.factory.entry_state(remove_options={simuvex.o.LAZY_SOLVES},
+            state = self.project.factory.entry_state(remove_options={angr.options.LAZY_SOLVES},
                                                      add_options=add_options, plugins=plugins)
 
         data = self.config.do_start(state)
@@ -103,9 +102,9 @@ class Executor(object):
         if 'max_rounds' in data:
             max_rounds = data['max_rounds']
 
-        pg = self.project.factory.path_group(state, veritesting=veritesting, veritesting_options={'boundaries': _boundaries})
+        sm = self.project.factory.simgr(state, veritesting=veritesting, veritesting_options={'boundaries': _boundaries}, save_unsat=False)
 
-        return pg, data, veritesting, max_rounds
+        return sm, data, veritesting, max_rounds
 
     def run(self, mem_memory = None, reg_memory = None):
 
@@ -142,6 +141,8 @@ class Executor(object):
             print pg
             state = pg.found[0].state
             self.config.do_end(state, data, pg)
+        else:
+            print "No state has reached the target"
 
         print pg.active
         print pg.avoid
@@ -153,7 +154,7 @@ class Executor(object):
 
     def explore(self, mem_memory = None, reg_memory = None):
 
-        pg, data, veritesting, max_rounds = self._common_run(mem_memory, reg_memory)
+        sm, data, veritesting, max_rounds = self._common_run(mem_memory, reg_memory)
 
         avoided = []
         found = []
@@ -161,22 +162,20 @@ class Executor(object):
 
         k = 0
 
-        while len(pg.active) > 0 and len(found) == 0:
+        while len(sm.active) > 0 and len(found) == 0:
 
             if max_rounds is not None and k >= max_rounds:
-                found += pg.active
+                found += sm.active
                 break
 
             k += 1
 
-            parent_state = pg.active[0].history._parent.state if pg.active[0].history._parent is not None else None
 
-            path = pg.active[0]
-            state = pg.active[0].state
+            state = sm.active[0]
             addr = state.ip.args[0]
             
             print "\n###################################################"
-            print "\nNumber of active states: " + str(len(pg.active))
+            print "\nNumber of active states: " + str(len(sm.active))
             print "Executing first active path in the list"
             print "Path is at address: " + str(hex(addr)) 
 
@@ -193,22 +192,26 @@ class Executor(object):
             code.vex.pp()
 
             # print path constraint
-            self._print_constraints(state.se.constraints, parent_state.se.constraints if parent_state is not None else None)
+            try:
+                if state.history.parent is not None:
+                    self._print_constraints(state.se.constraints, state.history.parent.state.se.constraints)
+            except ReferenceError:
+                pass
 
             #pdb.set_trace()    
 
-            print pg
-            print pg.active
+            print sm
+            print sm.active
 
             print "# Start of execution"
             if not veritesting:
-                pg.step(opt_level=1, num_inst=num_inst, )  # selector_func = lambda x: x is path
+                sm.step(opt_level=1, num_inst=num_inst, )  # selector_func = lambda x: x is path
             else:
-                pg.step()
+                sm.step()
             print "# End of execution\n"
 
             remove = []
-            for path in pg.active:
+            for path in sm.active:
             
                 ip = path.state.ip.args[0]
                 if ip in self.avoid:
@@ -221,9 +224,9 @@ class Executor(object):
                     remove.append(path)
 
             for path in remove:
-                pg.active.remove(path)
+                sm.active.remove(path)
 
-        if len(pg.active) == 0 and len(found) == 0:
+        if len(sm.active) == 0 and len(found) == 0:
             print "Something went wrong: no active path, but no found path!"
             pdb.set_trace()
             assert False
@@ -232,7 +235,7 @@ class Executor(object):
         print "One path has reached target instruction: " + str(hex(found[0].state.ip.args[0]))
         state = found[0].state
         print len(found)
-        self.config.do_end(state, data, pg)
+        self.config.do_end(state, data, sm)
         print "Constraints:"
         self._print_constraints(state.se.constraints, None)
         #pdb.set_trace()

@@ -17,13 +17,8 @@ if __name__ == '__main__':
     angr_project = explorer.project
 
     if t == 0:
-        mem_memory, reg_memory = factory.get_simple_fully_symbolic_memory(angr_project)
-    elif t == 1:
         mem_memory, reg_memory = factory.get_angr_symbolic_memory(angr_project)
-    elif t == 2:
-        mem_memory, reg_memory = factory.get_naive_fully_symbolic_memory(angr_project)
-        mem_memory.verbose = True
-    elif t == 3:
+    elif t == 1:
         mem_memory, reg_memory = factory.get_range_fully_symbolic_memory(angr_project)
         mem_memory.verbose = True
 

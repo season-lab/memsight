@@ -15,7 +15,7 @@ def do_start(state):
 
 def do_end(state, params, pg):
 	o = state.se.Concat(params['edi'], params['esi'])
-	sol = state.se.any_n_int(o, 5)
+	sol = state.se.eval_upto(o, 5)
 	import ctypes
 	esi = []
 	edi = []

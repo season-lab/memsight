@@ -1,21 +1,21 @@
-import simuvex
-
+import angr
+import sys
 
 def get_permission_backer(proj):
-    permission_map = { }
+    permission_map = {}
     for obj in proj.loader.all_objects:
         for seg in obj.segments:
             perms = 0
             # bit values based off of protection bit values from sys/mman.h
             if seg.is_readable:
-                perms |= 1 # PROT_READ
+                perms |= 1  # PROT_READ
             if seg.is_writable:
-                perms |= 2 # PROT_WRITE
+                perms |= 2  # PROT_WRITE
             if seg.is_executable:
-                perms |= 4 # PROT_EXEC
-            permission_map[(obj.rebase_addr + seg.min_addr, obj.rebase_addr + seg.max_addr)] = perms
-    
-    return (proj.loader.main_bin.execstack, permission_map)
+                perms |= 4  # PROT_EXEC
+            permission_map[(seg.min_addr, seg.max_addr)] = perms
+
+    return (proj.loader.main_object.execstack, permission_map)
 
 
 def parse_args(argv):
@@ -36,7 +36,7 @@ def parse_args(argv):
 def get_unconstrained_bytes(state, name, bits, source=None, memory=None):
 
     if (memory is not None and memory.category == 'mem' and
-                simuvex.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY in state.options):
+                angr.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY in state.options):
         # CGC binaries zero-fill the memory for any allocated region
         # Reference: (https://github.com/CyberGrandChallenge/libcgc/blob/master/allocate.md)
         #if memory.verbose: memory.log("\treturning zero-valued unconconstrained bytes")
@@ -91,7 +91,7 @@ def resolve_location_name(memory, name):
     elif name[0] == '*':
         return memory.state.registers.load(name[1:]), None
     else:
-        raise simuvex.s_errors.SimMemoryError("Trying to address memory with a register name.")
+        raise angr.errors.SimMemoryError("Trying to address memory with a register name.")
 
 def reverse_addr_reg(memory, addr):
 
