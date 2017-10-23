@@ -6,7 +6,7 @@
 - `factory.py`: some functions to build different kinds of symbolic memories
 - `executor_config.py`: parser for executor config
 - `angr_symbolic_memory.py`: a wrapper around angr symbolic memory
-- `range_fully_symbolic_memory.py`: an implementation of a fully symbolic memory (see: [pseudocode/naive-v3](pseudocode/naive-v3/main.pdf))
+- `range_fully_symbolic_memory.py`: memsight, an implementation of a fully symbolic memory (see: [pseudocode/naive-v4](pseudocode/naive-v4/main.pdf))
 - `utils.py`: other useful stuff
 - `tests/`: testing binaries
 
