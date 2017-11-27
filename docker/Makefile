@@ -15,5 +15,5 @@ clean:
 	sudo docker rm ${NAME}-${VERSION}
 
 build:
-	-sudo docker rmi ${NAME}-${VERSION}
+	#-sudo docker rmi ${NAME}-${VERSION}
 	sudo docker build -t ${NAME}-${VERSION} -f Dockerfile ../../

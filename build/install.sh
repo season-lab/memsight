@@ -9,6 +9,7 @@ sudo apt-get update >/dev/null || true
 # dependencies
 echo "Installing dependencies..."
 sudo apt-get install -y sudo nano python-pip time git python-dev build-essential
+sudo pip install -U pip
 
 # virtualenv
 echo "Creating virtualenv"
@@ -20,7 +21,7 @@ mkvirtualenv $VIRTUALENV_NAME || true
 
 # angr stuff
 echo "Installing angr..."
-sudo pip install -r requirements.txt
+sudo -H pip install -r memsight/requirements.txt
 
 # clone
 echo "Cloning..."
