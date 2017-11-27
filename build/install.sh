@@ -13,6 +13,8 @@ sudo apt-get install -y sudo nano python-pip time git python-dev build-essential
 # virtualenv
 echo "Creating virtualenv"
 sudo pip install virtualenv virtualenvwrapper
+export WORKON_HOME=$HOME/.virtualenvs
+source /usr/local/bin/virtualenvwrapper.sh
 mkvirtualenv $VIRTUALENV_NAME
 workon memsight
 
