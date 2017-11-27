@@ -56,8 +56,6 @@ class TestMemsightMemory(unittest.TestCase):
         plugins = {}
         if mem_memory is not None:
             plugins['memory'] = mem_memory
-        if reg_memory is not None:
-            plugins['registers'] = reg_memory
 
         state = angr_project.factory.entry_state(remove_options={angr.options.LAZY_SOLVES}, plugins=plugins)
 
