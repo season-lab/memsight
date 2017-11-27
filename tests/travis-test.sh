@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ~/.bashrc
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export VIRTUALENV_NAME="memsight"
 
