@@ -19,13 +19,13 @@ source /usr/local/bin/virtualenvwrapper.sh
 mkvirtualenv $VIRTUALENV_NAME || true
 # workon memsight
 
-# angr stuff
-echo "Installing angr..."
-sudo -H pip install -r memsight/requirements.txt
-
 # clone
 echo "Cloning..."
 git clone git@github.com:season-lab/fully-symbolic-memory.git memsight
+
+# angr stuff
+echo "Installing angr..."
+sudo -H pip install -r memsight/requirements.txt
 
 # patches
 echo "Applying patches"
