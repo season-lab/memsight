@@ -1,23 +1,36 @@
 
 def start():
-	return 0x4004d6
+	return None
 
 def end():
-	return [0x4004ff]
-
+	return [] #[0x804e3a2] 
+	
 def avoid():
 	return []
 
 def do_start(state):
+
+	import claripy
+
+	#buf = [0x1, 0xf5, 0xa]
+	buf = [0x40, 0x20, 0xa]
+	for i in range(len(buf)):
+		c = state.posix.files[0].read_from(1)
+		state.se.add(c == buf[i])
+	state.posix.files[0].size = len(buf)
+	state.posix.files[0].length = len(buf)
+	state.posix.files[0].seek(0)
+	
 	params = {}
-	params['edi'] = state.regs.edi
-	params['veritesting'] = True
-	params['max_rounds'] = 2
-	state.se.add(params['edi'] < 9)
+	#params['veritesting'] = True
 	return params
 
 def do_end(state, params, pg):
 
+	import pdb
+	pdb.set_trace()
+
+	"""
 	o = state.se.Concat(params['edi'], state.regs.eax)
 	sol = state.se.eval_upto(o, 10)
 	import ctypes
@@ -32,3 +45,6 @@ def do_end(state, params, pg):
 	assert len(eax) == 9
 	print "I: " + str(edi)
 	print "SUM:" + str(eax)
+	"""
+
+	pass

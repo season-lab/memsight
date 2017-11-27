@@ -1239,8 +1239,15 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
     @profile
     def merge(self, others, merge_conditions, common_ancestor=None):
 
+        assert common_ancestor is not None
+
         print "Merging..."
         #print merge_conditions
+
+        #print self.state.se.constraints
+        #print others[0].state.se.constraints
+        #print self.state.se.any_n_int(self.state.regs.edi, 10)
+        #print others[0].state.se.any_n_int(others[0].state.regs.edi, 10)
 
         if self.angr_memory is not None:
             self._compare_with_angr(op='pre_merge')

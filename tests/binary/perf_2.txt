@@ -1,0 +1,324 @@
+
+Running tests using memory n=2
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TEST: basic-example
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Starting symbolic execution of binary: tests/basic-example
+From address: 0x400576
+Target addresses: 0x4005bc
+Avoid addresses: 0x4005d5
+
+<PathGroup with 1 active>
+ERROR   | 2017-04-06 15:25:19,647 | [32msimuvex.plugins.unicorn[0m | [32mYou are attempting to use unicorn engine support even though it or the simuvex compatibility layer isn't installed[0m
+<PathGroup with 2 active>
+<PathGroup with 1 avoid, 2 active>
+Reached the target
+<PathGroup with 3 avoid, 1 found>
+EDI: [2, -2147483646]
+ESI: [0, 0]
+Constraints:
+[<Bool reg_40_1_32 == 0x0>, <Bool reg_48_0_32[6:0] == 2>, <Bool reg_48_0_32[30:7] == 0x0>]
+
+Memory footprint: 	129 MB
+real 1.19
+user 1.08
+sys 0.10
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TEST: array_O0
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Starting symbolic execution of binary: tests/array_O0
+From address: 0x400526
+Target addresses: 0x40055d
+Avoid addresses: 0x400576 0x400577
+
+<PathGroup with 1 active>
+ERROR   | 2017-04-06 15:25:20,863 | [32msimuvex.plugins.unicorn[0m | [32mYou are attempting to use unicorn engine support even though it or the simuvex compatibility layer isn't installed[0m
+<PathGroup with 1 avoid, 1 active>
+<PathGroup with 2 avoid, 1 active>
+Reached the target
+<PathGroup with 3 avoid, 1 found>
+EDI: [0, 1]
+ESI: [0, 1]
+
+Memory footprint: 	131 MB
+real 1.46
+user 1.32
+sys 0.13
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TEST: fail
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Starting symbolic execution of binary: tests/fail
+From address: 0x400526
+Target addresses: 0x400547
+Avoid addresses: 0x400564
+
+<PathGroup with 1 active>
+ERROR   | 2017-04-06 15:25:22,355 | [32msimuvex.plugins.unicorn[0m | [32mYou are attempting to use unicorn engine support even though it or the simuvex compatibility layer isn't installed[0m
+<PathGroup with 1 avoid, 1 active>
+Reached the target
+<PathGroup with 2 avoid, 1 found>
+EDI: [992, 0, 997, 1, 996]
+ESI: [992, 0, 997, 1, 996]
+
+Memory footprint: 	128 MB
+real 4.92
+user 4.80
+sys 0.10
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TEST: fail2
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Starting symbolic execution of binary: tests/fail2
+From address: 0x400596
+Target addresses: 0x4005b3
+Avoid addresses: 0x4005cc
+
+<PathGroup with 1 active>
+ERROR   | 2017-04-06 15:25:27,304 | [32msimuvex.plugins.unicorn[0m | [32mYou are attempting to use unicorn engine support even though it or the simuvex compatibility layer isn't installed[0m
+Reached the target
+<PathGroup with 1 avoid, 1 found>
+EDI: [384L, 0, 488L, 489L, 392L]
+
+Memory footprint: 	129 MB
+real 1.69
+user 1.46
+sys 0.18
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TEST: fail3
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Starting symbolic execution of binary: tests/fail3
+From address: 0x400526
+Target addresses: 0x400551
+Avoid addresses: 0x40056a
+
+<PathGroup with 1 active>
+ERROR   | 2017-04-06 15:25:29,017 | [32msimuvex.plugins.unicorn[0m | [32mYou are attempting to use unicorn engine support even though it or the simuvex compatibility layer isn't installed[0m
+Reached the target
+<PathGroup with 1 avoid, 1 found>
+EDI: [2, 0, -1, 1, -4]
+ESI: [2, 0, -1, 1, -4]
+
+Memory footprint: 	129 MB
+real 31.75
+user 31.44
+sys 0.14
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TEST: fail4
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Starting symbolic execution of binary: tests/fail4
+From address: 0x4004d6
+Target addresses: 0x4004e9
+Avoid addresses: 0x4004f0
+
+<PathGroup with 1 active>
+ERROR   | 2017-04-06 15:26:00,681 | [32msimuvex.plugins.unicorn[0m | [32mYou are attempting to use unicorn engine support even though it or the simuvex compatibility layer isn't installed[0m
+<PathGroup with 2 active>
+WARNING | 2017-04-06 15:26:01,271 | [36msimuvex.engine.successors[0m | [36mExit state has over 257 possible solutions. Likely unconstrained; skipping. <BV64 bottom_29_8 .. bottom_28_8 .. bottom_27_8 .. bottom_26_8 .. bottom_25_8 .. bottom_24_8 .. bottom_23_8 .. bottom_22_8>[0m
+Reached the target
+<PathGroup with 1 deadended, 1 found>
+
+Memory footprint: 	129 MB
+real 1.62
+user 1.45
+sys 0.15
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TEST: fail5
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Starting symbolic execution of binary: tests/fail5
+From address: 0x400526
+Target addresses: 0x400558
+Avoid addresses: 0x400571 0x400572
+
+<PathGroup with 1 active>
+ERROR   | 2017-04-06 15:26:02,298 | [32msimuvex.plugins.unicorn[0m | [32mYou are attempting to use unicorn engine support even though it or the simuvex compatibility layer isn't installed[0m
+<PathGroup with 1 avoid, 1 active>
+<PathGroup with 2 avoid, 1 active>
+Reached the target
+<PathGroup with 3 avoid, 1 found>
+EDI: [0, 1]
+ESI: [0, 1]
+
+Memory footprint: 	129 MB
+real 1.34
+user 1.23
+sys 0.10
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TEST: bomb
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Starting symbolic execution of binary: tests/bomb
+From address: 0x401062
+Target addresses: 0x4010ee
+Avoid addresses: 0x40143a 0x4010e9
+
+<PathGroup with 1 active>
+ERROR   | 2017-04-06 15:26:03,882 | [32msimuvex.plugins.unicorn[0m | [32mYou are attempting to use unicorn engine support even though it or the simuvex compatibility layer isn't installed[0m
+<PathGroup with 1 active>
+<PathGroup with 2 active>
+<PathGroup with 3 active>
+<PathGroup with 4 active>
+<PathGroup with 1 avoid, 4 active>
+<PathGroup with 2 avoid, 4 active>
+<PathGroup with 3 avoid, 4 active>
+<PathGroup with 4 avoid, 4 active>
+<PathGroup with 5 avoid, 4 active>
+<PathGroup with 6 avoid, 4 active>
+<PathGroup with 6 avoid, 5 active>
+<PathGroup with 7 avoid, 5 active>
+<PathGroup with 8 avoid, 5 active>
+<PathGroup with 9 avoid, 5 active>
+<PathGroup with 10 avoid, 5 active>
+
+Profiling stats:
+	load: ncall=54 ctime=1.24002146721
+	_raw_ast: ncall=237 ctime=0.000320196151733
+	set_state: ncall=89 ctime=0.103181600571
+	build_ite: ncall=80 ctime=0.0200831890106
+	_resolve_size_range: ncall=79 ctime=0.000544309616089
+	map_region: ncall=5 ctime=0.000302791595459
+	check_sigsegv_and_refine: ncall=78 ctime=0.000146865844727
+	store: ncall=24 ctime=0.0325593948364
+	intersect: ncall=10 ctime=0.0556230545044
+	memory_op: ncall=78 ctime=0.0037670135498
+	_init_memory: ncall=89 ctime=0.102830886841
+	copy: ncall=88 ctime=0.0020854473114
+	__init__: ncall=89 ctime=0.000457763671875
+	Memory footprint: 	382 MB
+
+<PathGroup with 11 avoid, 5 active>
+<PathGroup with 12 avoid, 5 active>
+<PathGroup with 13 avoid, 5 active>
+<PathGroup with 14 avoid, 5 active>
+<PathGroup with 15 avoid, 5 active>
+<PathGroup with 16 avoid, 6 active>
+<PathGroup with 17 avoid, 7 active>
+<PathGroup with 18 avoid, 8 active>
+<PathGroup with 19 avoid, 9 active>
+<PathGroup with 20 avoid, 10 active>
+
+Profiling stats:
+	load: ncall=113 ctime=1.5550737381
+	_raw_ast: ncall=480 ctime=0.000665187835693
+	set_state: ncall=191 ctime=0.103640079498
+	build_ite: ncall=96 ctime=0.0239088535309
+	_resolve_size_range: ncall=160 ctime=0.00110363960266
+	map_region: ncall=5 ctime=0.000302791595459
+	check_sigsegv_and_refine: ncall=160 ctime=0.000308275222778
+	store: ncall=47 ctime=0.0401735305786
+	intersect: ncall=15 ctime=0.146814584732
+	memory_op: ncall=160 ctime=0.00784969329834
+	_init_memory: ncall=191 ctime=0.102900266647
+	copy: ncall=190 ctime=0.00490951538086
+	__init__: ncall=192 ctime=0.0008704662323
+	Memory footprint: 	389 MB
+
+<PathGroup with 21 avoid, 10 active>
+<PathGroup with 22 avoid, 10 active>
+<PathGroup with 23 avoid, 10 active>
+<PathGroup with 24 avoid, 10 active>
+<PathGroup with 25 avoid, 10 active>
+<PathGroup with 26 avoid, 10 active>
+<PathGroup with 27 avoid, 10 active>
+
+Profiling stats:
+	load: ncall=178 ctime=1.60834026337
+	_raw_ast: ncall=702 ctime=0.000998258590698
+	set_state: ncall=311 ctime=0.104180335999
+	build_ite: ncall=96 ctime=0.0239088535309
+	_resolve_size_range: ncall=234 ctime=0.00161194801331
+	map_region: ncall=5 ctime=0.000302791595459
+	check_sigsegv_and_refine: ncall=234 ctime=0.000440835952759
+	store: ncall=56 ctime=0.0418968200684
+	intersect: ncall=15 ctime=0.146814584732
+	memory_op: ncall=234 ctime=0.0116302967072
+	_init_memory: ncall=312 ctime=0.102978229523
+	copy: ncall=311 ctime=0.00830125808716
+	__init__: ncall=312 ctime=0.00133395195007
+	Memory footprint: 	393 MB
+
+<PathGroup with 28 avoid, 10 active>
+<PathGroup with 29 avoid, 10 active>
+<PathGroup with 31 avoid, 9 active>
+<PathGroup with 33 avoid, 8 active>
+<PathGroup with 35 avoid, 7 active>
+<PathGroup with 37 avoid, 6 active>
+<PathGroup with 39 avoid, 6 active>
+<PathGroup with 40 avoid, 6 active>
+<PathGroup with 41 avoid, 7 active>
+<PathGroup with 42 avoid, 7 active>
+
+Profiling stats:
+	load: ncall=246 ctime=1.70144891739
+	_raw_ast: ncall=948 ctime=0.00132346153259
+	set_state: ncall=418 ctime=0.107133865356
+	build_ite: ncall=96 ctime=0.0239088535309
+	_resolve_size_range: ncall=316 ctime=0.00215220451355
+	map_region: ncall=5 ctime=0.000302791595459
+	check_sigsegv_and_refine: ncall=316 ctime=0.000585794448853
+	store: ncall=70 ctime=0.044177532196
+	intersect: ncall=15 ctime=0.146814584732
+	memory_op: ncall=316 ctime=0.0154366493225
+	_init_memory: ncall=418 ctime=0.103045701981
+	copy: ncall=417 ctime=0.0109386444092
+	__init__: ncall=419 ctime=0.00175952911377
+	Memory footprint: 	395 MB
+
+<PathGroup with 43 avoid, 8 active>
+<PathGroup with 46 avoid, 6 active>
+<PathGroup with 47 avoid, 7 active>
+<PathGroup with 49 avoid, 6 active>
+<PathGroup with 50 avoid, 7 active>
+<PathGroup with 52 avoid, 6 active>
+<PathGroup with 53 avoid, 7 active>
+<PathGroup with 55 avoid, 6 active>
+<PathGroup with 56 avoid, 6 active>
+<PathGroup with 58 avoid, 5 active>
+
+Profiling stats:
+	load: ncall=312 ctime=1.79232144356
+	_raw_ast: ncall=1197 ctime=0.00165820121765
+	set_state: ncall=523 ctime=0.107591629028
+	build_ite: ncall=96 ctime=0.0239088535309
+	_resolve_size_range: ncall=399 ctime=0.00271201133728
+	map_region: ncall=5 ctime=0.000302791595459
+	check_sigsegv_and_refine: ncall=399 ctime=0.000715970993042
+	store: ncall=87 ctime=0.0495681762695
+	intersect: ncall=15 ctime=0.146814584732
+	memory_op: ncall=399 ctime=0.0245678424835
+	_init_memory: ncall=523 ctime=0.103123664856
+	copy: ncall=522 ctime=0.0140249729156
+	__init__: ncall=523 ctime=0.00237607955933
+	Memory footprint: 	400 MB
+
+<PathGroup with 59 avoid, 5 active>
+Reached the target
+<PathGroup with 60 avoid, 4 active, 1 found>
+IO>EEE                                                                                                                          
+
+Memory footprint: 	401 MB
+real 10.86
+user 10.60
+sys 0.24
+
+

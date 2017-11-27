@@ -144,9 +144,6 @@ class Executor(object):
         else:
             print "No state has reached the target"
 
-        print pg.active
-        print pg.avoid
-
         #assert len(pg.found) > 0
         print
         print "Memory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
