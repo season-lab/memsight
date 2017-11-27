@@ -28,7 +28,7 @@ class TestMemsightMemory(unittest.TestCase):
         self.assertTrue(self.common('array_O0'))
 
     def test_fail(self):
-        self.assertTrue(self.common('fail'))
+        self.assertTrue(not self.common('fail'))
 
     def test_fail2(self):
         self.assertTrue(self.common('fail2'))
