@@ -99,34 +99,34 @@ class pitree:
     stats = collections.namedtuple('stats', 'num_pages num_intervals num_1_intervals is_lazy_tree num_lazy_pages max_page_size, size, sum_range, max_range')
 
     def __init__(self, page_size = 128):
-        self.__pages       = IntervalTree()
-        self.__lookup      = dict()
-        self.__lazycopy    = False
-        self.__page_size   = page_size
-        self.__num_inter   = 0
-        self.__num_1_inter = 0
+        self._pages       = IntervalTree()
+        self._lookup      = dict()
+        self._lazycopy    = False
+        self._page_size   = page_size
+        self._num_inter   = 0
+        self._num_1_inter = 0
 
     def __repr__(self):
-        return "---\npages="   + str(self.__pages)       + "\n\n"  + \
-               "lookup="       + str(self.__lookup)      + "\n\n"  + \
-               "lazycopy="     + str(self.__lazycopy)    + "\n"    + \
-               "page_size="    + str(self.__page_size)   + "\n"    + \
-               "num inter="    + str(self.__num_inter)   + "\n---" + \
-               "num 1-inter="  + str(self.__num_1_inter) + "\n---"
+        return "---\npages="   + str(self._pages)       + "\n\n"  + \
+               "lookup="       + str(self._lookup)      + "\n\n"  + \
+               "lazycopy="     + str(self._lazycopy)    + "\n"    + \
+               "page_size="    + str(self._page_size)   + "\n"    + \
+               "num inter="    + str(self._num_inter)   + "\n---" + \
+               "num 1-inter="  + str(self._num_1_inter) + "\n---"
 
     __str__ = __repr__
 
     def get_stats(self):
-        n_lazy_pages  = sum(1 for p in self.__pages if p.data.lazycopy)
-        m_page_size   = max(len(p.data.tree) for p in self.__pages) if len(self.__pages) > 0 else 0
+        n_lazy_pages  = sum(1 for p in self._pages if p.data.lazycopy)
+        m_page_size   = max(len(p.data.tree) for p in self._pages) if len(self._pages) > 0 else 0
         obj_size      = asizeof.asizeof(self)
         all_intervals = self.search(0, sys.maxint)
         s_range       = sum(i.end-i.begin for i in all_intervals)
         m_range       = max(i.end-i.begin for i in all_intervals) if s_range > 0 else 0
-        return pitree.stats(num_pages       = len(self.__lookup),          \
-                            num_intervals   = self.__num_inter,            \
-                            num_1_intervals = self.__num_1_inter,          \
-                            is_lazy_tree    = 1 if self.__lazycopy else 0, \
+        return pitree.stats(num_pages       = len(self._lookup),          \
+                            num_intervals   = self._num_inter,            \
+                            num_1_intervals = self._num_1_inter,          \
+                            is_lazy_tree    = 1 if self._lazycopy else 0, \
                             num_lazy_pages  = n_lazy_pages,                \
                             max_page_size   = m_page_size,                 \
                             size            = obj_size,                    \
@@ -187,13 +187,13 @@ class pitree:
         Lazy copy of the tree - O(1)
         :rtype: pitree
         """
-        self.__lazycopy = True
-        cloned = pitree(self.__page_size)
-        cloned.__lazycopy    = True
-        cloned.__pages       = self.__pages
-        cloned.__lookup      = self.__lookup
-        cloned.__num_inter   = self.__num_inter
-        cloned.__num_1_inter = self.__num_1_inter
+        self._lazycopy = True
+        cloned = pitree(self._page_size)
+        cloned._lazycopy    = True
+        cloned._pages       = self._pages
+        cloned._lookup      = self._lookup
+        cloned._num_inter   = self._num_inter
+        cloned._num_1_inter = self._num_1_inter
         return cloned
 
     def add(self, begin, end, item=None):
@@ -204,19 +204,19 @@ class pitree:
         :param item: value associated with key
         """
         assert begin < end
-        begin_p = begin / self.__page_size
-        end_p   = end   / self.__page_size + 1
+        begin_p = begin / self._page_size
+        end_p   = end   / self._page_size + 1
         self._copy_on_write()
         try:
-            p = self.__lookup[(begin_p, end_p)]
+            p = self._lookup[(begin_p, end_p)]
         except KeyError:
             p = page(begin_p, end_p)
-            self.__lookup[(begin_p, end_p)] = p
-            self.__pages.addi(p.begin, p.end, p)
+            self._lookup[(begin_p, end_p)] = p
+            self._pages.addi(p.begin, p.end, p)
         p.add(begin, end, item)
-        self.__num_inter = self.__num_inter + 1
+        self._num_inter = self._num_inter + 1
         if (begin + 1 == end):
-            self.__num_1_inter = self.__num_1_inter + 1
+            self._num_1_inter = self._num_1_inter + 1
 
     def search(self, begin, end):
         """
@@ -226,10 +226,10 @@ class pitree:
         :rtype: set of objects of type Interval (fields: begin, end, data)
         """
         assert begin < end
-        begin_p = begin / self.__page_size
-        end_p   = end   / self.__page_size + 1
+        begin_p = begin / self._page_size
+        end_p   = end   / self._page_size + 1
         res = set()
-        for i in self.__pages.search(begin_p, end_p):
+        for i in self._pages.search(begin_p, end_p):
             res.update(i.data.tree.search(begin, end))
         return res
 
@@ -240,22 +240,22 @@ class pitree:
         :param new_item: new value for interval
         """
         self._copy_on_write()
-        begin_p = i.begin / self.__page_size
-        end_p   = i.end   / self.__page_size + 1
-        p = self.__lookup[(begin_p, end_p)]
+        begin_p = i.begin / self._page_size
+        end_p   = i.end   / self._page_size + 1
+        p = self._lookup[(begin_p, end_p)]
         return p.update_item(i, new_item)
 
     def _copy_on_write(self):
         """
         Clone pages and lookup data structures
         """
-        if (self.__lazycopy):
-            self.__lazycopy = False
+        if (self._lazycopy):
+            self._lazycopy = False
             pages  = IntervalTree()
             lookup = dict()
-            for p in self.__lookup.values():
+            for p in self._lookup.values():
                 n = p.copy()
                 lookup[(p.begin, p.end)] = n
                 pages.addi(n.begin, n.end, n)
-            self.__pages  = pages
-            self.__lookup = lookup
+            self._pages  = pages
+            self._lookup = lookup

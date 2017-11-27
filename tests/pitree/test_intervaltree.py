@@ -1,18 +1,10 @@
 import sys, traceback
+from bcolors import bcolors
+
 sys.path.append('../../memory/lib/pitree')
 from node import *
 from interval import *
 from intervaltree import *
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 def test_1():
     it = IntervalTree()
@@ -112,7 +104,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 2"
@@ -121,7 +113,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 3"
@@ -130,7 +122,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 4"
@@ -139,7 +131,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 5"
@@ -148,7 +140,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 6"
@@ -157,7 +149,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 7"
@@ -166,7 +158,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 8"
@@ -175,7 +167,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 9"
@@ -184,7 +176,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 10"
@@ -193,7 +185,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 11"
@@ -202,7 +194,7 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
 
     print "- Test 12"
@@ -211,5 +203,5 @@ if __name__ == "__main__":
     except:
         print bcolors.FAIL + "  Not passed" + bcolors.ENDC
         traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     print bcolors.OKGREEN + "  Passed" + bcolors.ENDC + "\n"
