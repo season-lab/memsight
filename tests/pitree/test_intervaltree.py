@@ -1,7 +1,8 @@
+import sys, traceback
+sys.path.append('../../memory/lib/pitree')
 from node import *
 from interval import *
 from intervaltree import *
-import sys, traceback
 
 class bcolors:
     HEADER = '\033[95m'
