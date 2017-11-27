@@ -14,10 +14,9 @@ sudo pip install -U pip
 # virtualenv
 echo "Creating virtualenv"
 sudo pip install virtualenv virtualenvwrapper
-export WORKON_HOME=$HOME/.virtualenvs
-echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc
-source ~/.bashrc
+source /usr/local/bin/virtualenvwrapper.sh
 mkvirtualenv $VIRTUALENV_NAME || true
+echo "workon memsight" >> ~/.bashrc || true
 # workon memsight
 
 # clone
