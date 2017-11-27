@@ -15,7 +15,8 @@ from memory import factory
 class TestMemsightMemory(unittest.TestCase):
 
     def common(self, file):
-        explorer = executor.Executor(file)
+        p = os.path.dirname(os.path.realpath(__file__))
+        explorer = executor.Executor(p + '/' + file)
         angr_project = explorer.project
         mem_memory, reg_memory = factory.get_range_fully_symbolic_memory(angr_project)
         return explorer.run(mem_memory=mem_memory, reg_memory=reg_memory, verbose=False)
