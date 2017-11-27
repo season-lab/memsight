@@ -16,6 +16,7 @@ echo "Creating virtualenv"
 sudo pip install virtualenv virtualenvwrapper
 source /usr/local/bin/virtualenvwrapper.sh
 mkvirtualenv $VIRTUALENV_NAME || true
+echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc
 echo "workon memsight" >> ~/.bashrc || true
 # workon memsight
 
