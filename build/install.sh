@@ -14,6 +14,7 @@ sudo pip install -U pip
 # virtualenv
 echo "Creating virtualenv"
 sudo pip install virtualenv virtualenvwrapper
+pip install --upgrade virtualenvwrapper
 export WORKON_HOME=$HOME/.virtualenvs
 source /usr/local/bin/virtualenvwrapper.sh
 mkvirtualenv $VIRTUALENV_NAME || true
