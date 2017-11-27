@@ -13,7 +13,7 @@ def do_start(state):
 	params['esi'] = state.regs.esi
 	return params
 
-def do_end(state, params, pg):
+def do_end(state, params, pg, verbose=True):
 	o = state.se.Concat(params['edi'], params['esi'])
 	sol = state.se.eval_upto(o, 5)
 	import ctypes
@@ -25,7 +25,8 @@ def do_end(state, params, pg):
 		assert edi[-1] in (2L, -2147483646)
 		assert esi[-1] in (0,)
 
-	print "EDI: " + str(edi)
-	print "ESI: " + str(esi)
-	print "Constraints:"
-	print state.se.constraints
+	if 	verbose:
+		print "EDI: " + str(edi)
+		print "ESI: " + str(esi)
+		print "Constraints:"
+		print state.se.constraints

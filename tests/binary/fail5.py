@@ -14,7 +14,7 @@ def do_start(state):
 	params['edi'] = state.regs.edi
 	return params
 
-def do_end(state, params, pg):
+def do_end(state, params, pg, verbose=True):
 
 	expected_sol = [0, 1]
 	o = state.se.Concat(params['edi'], params['esi'])
@@ -29,5 +29,7 @@ def do_end(state, params, pg):
 
 	assert set(edi) == set(expected_sol)
 	assert set(esi) == set(expected_sol)
-	print "EDI: " + str(edi)
-	print "ESI: " + str(esi)
+
+	if verbose:
+		print "EDI: " + str(edi)
+		print "ESI: " + str(esi)

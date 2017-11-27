@@ -14,7 +14,7 @@ def do_start(state):
 	params['edi'] = state.regs.edi
 	return params
 
-def do_end(state, params, pg):
+def do_end(state, params, pg, verbose=True):
 	o = state.se.Concat(params['edi'], params['esi'])
 	sol = state.se.eval_upto(o, 5)
 	import ctypes
@@ -25,5 +25,6 @@ def do_end(state, params, pg):
 		esi.append(ctypes.c_int(sol[k] & 0xFFFFFFFF).value)
 		assert edi[-1] == esi[-1]
 
-	print "EDI: " + str(edi)
-	print "ESI: " + str(esi)
+	if verbose:
+		print "EDI: " + str(edi)
+		print "ESI: " + str(esi)

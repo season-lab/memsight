@@ -13,7 +13,8 @@ def do_start(state):
 	params['edi'] = state.regs.edi
 	return params
 
-def do_end(state, params, pg):
+def do_end(state, params, pg, verbose=True):
 	sol = state.se.eval_upto(params['edi'], 5)
 	for s in sol: assert s < 1000
-	print "EDI: " + str(sol)
+	if verbose:
+		print "EDI: " + str(sol)

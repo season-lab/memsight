@@ -9,16 +9,18 @@ import logging
 
 class Executor(object):
 
-    def __init__(self, f):
+    def __init__(self, f, verbose=False):
 
+        self.verbose = verbose
         self.start, self.avoid, self.end, self.config, self.binary = executor_config.get_target_addrs(f)
 
-        print
-        print "Starting symbolic execution of metabinary: " + str(f)
-        print "From address: " + str(hex(self.start) if self.start is not None else 'NONE')
-        print "Target addresses: " + ' '.join(map(lambda a: str(hex(a)), self.end))
-        print "Avoid addresses: " + ' '.join(map(lambda a: str(hex(a)), self.avoid))
-        print
+        if verbose:
+            print
+            print "Starting symbolic execution of metabinary: " + str(f)
+            print "From address: " + str(hex(self.start) if self.start is not None else 'NONE')
+            print "Target addresses: " + ' '.join(map(lambda a: str(hex(a)), self.end))
+            print "Avoid addresses: " + ' '.join(map(lambda a: str(hex(a)), self.avoid))
+            print
 
         self.project = angr.Project(self.binary, load_options={'auto_load_libs' : False})
 
@@ -70,7 +72,7 @@ class Executor(object):
 
             print       
 
-    def _common_run(self, mem_memory = None, reg_memory = None):
+    def _common_run(self, mem_memory = None, reg_memory = None, verbose=True):
 
         plugins = {}
         if mem_memory is not None:
@@ -96,7 +98,8 @@ class Executor(object):
         if 'veritesting' in data:
             veritesting = data['veritesting']
             _boundaries += self.end
-            print "Veritesting: " + str(veritesting)
+            if verbose:
+                print "Veritesting: " + str(veritesting)
 
         max_rounds = None
         if 'max_rounds' in data:
@@ -106,11 +109,11 @@ class Executor(object):
 
         return sm, data, veritesting, max_rounds
 
-    def run(self, mem_memory = None, reg_memory = None):
+    def run(self, mem_memory = None, reg_memory = None, verbose=True):
 
         #mem_memory.verbose = False
         #reg_memory.verbose = False
-        pg, data, veritesting, max_rounds = self._common_run(mem_memory, reg_memory)
+        pg, data, veritesting, max_rounds = self._common_run(mem_memory, reg_memory, verbose)
 
         k = 0
         while len(pg.active) > 0:
@@ -127,8 +130,10 @@ class Executor(object):
 
             # step 1 basic block for each active path
             # if veritesting is on: this will step more than one 1 BB!
-            sys.stdout.write("depth=" + str(k) + " ")
-            print pg
+
+            if verbose:
+                sys.stdout.write("depth=" + str(k) + " ")
+                print pg
 
             pg.explore(avoid=self.avoid, find=self.end, n=1)
 
@@ -137,16 +142,21 @@ class Executor(object):
                 break
 
         if len(pg.found) > 0:
-            print "Reached the target"
-            print pg
+            if verbose:
+                print "Reached the target"
+                print pg
             state = pg.found[0].state
-            self.config.do_end(state, data, pg)
+            self.config.do_end(state, data, pg, verbose)
         else:
-            print "No state has reached the target"
+            if verbose:
+                print "No state has reached the target"
 
         #assert len(pg.found) > 0
-        print
-        print "Memory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
+        if verbose:
+            print
+            print "Memory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
+
+        return len(pg.found) > 0
 
 
     def explore(self, mem_memory = None, reg_memory = None):

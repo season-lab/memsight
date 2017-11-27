@@ -35,8 +35,9 @@ def do_start(state):
 	params['arg'] = arg
 	return params
 
-def do_end(state, params, pg):
-	print state.se.any_str(params['arg'])
+def do_end(state, params, pg, verbose=True):
+	if verbose:
+		print state.se.any_str(params['arg'])
 	arg = params['arg'][1023 : 1024 - (8 * 7)]
 	#assert len(state.se.any_n_str(arg, 25000)) == 6400
 

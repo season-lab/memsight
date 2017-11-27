@@ -6,12 +6,11 @@ import exceptions
 def get_target_addrs(fname):
 
     try:
-        p = os.path.dirname(fname)
+        p = os.path.dirname(os.path.abspath(fname))
         f = os.path.basename(fname)
         file = str(p + '/binary/' + f + ".py")
         config = imp.load_source(f, file)
     except exceptions.IOError as e:
-        print e
         print "config python script related to binary file is missing"
         print "Create " + str(fname) + ".py with the following functions:"
         print "\t        start()    => int"

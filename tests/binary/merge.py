@@ -18,7 +18,7 @@ def do_start(state):
     state.se.add(params['edi'] < 9)
     return params
 
-def do_end(state, params, pg):
+def do_end(state, params, pg, verbose=True):
 
     n = state.memory.load(state.regs.rbp - 4, 4).reversed
 
@@ -33,5 +33,7 @@ def do_end(state, params, pg):
 
     assert len(edi) == 9
     assert len(set(eax)) == 8
-    print "I: " + str(edi)
-    print "SUM:" + str(eax)
+
+    if verbose:
+        print "I: " + str(edi)
+        print "SUM:" + str(eax)

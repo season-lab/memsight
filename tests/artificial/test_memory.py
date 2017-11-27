@@ -1,8 +1,8 @@
 import angr
-import factory
-import simuvex
 import claripy
-import sys
+
+from memory import factory
+
 
 def check(state, obj, exp_values, conditions):
     r = state.se.any_n_int(obj, len(exp_values) + 1, extra_constraints=conditions)
@@ -24,7 +24,7 @@ def test_store_with_symbolic_size(state):
     state.se.add(s_size <= 2)
     state.memory.store(0x1, claripy.BVV(val_2, 16), s_size)
     res = state.se.any_n_int(state.memory.load(0x0, 4), 10)
-    print ' '.join([hex(x) for x in res])
+    # print ' '.join([hex(x) for x in res])
     assert len(state.se.any_n_int(state.memory.load(0x0, 4), 10)) == 3
 
     s0 = state.copy()
@@ -236,8 +236,6 @@ def test_same_operator(state):
     state.se.add(a < 1)
 
     assert state.memory.same(a, zero)
-
-
 
 if __name__ == '__main__':
 

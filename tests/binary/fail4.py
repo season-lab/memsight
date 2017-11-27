@@ -14,7 +14,7 @@ def do_start(state):
 	params['f'] = claripy.Reverse(state.memory.load(state.regs.rsp - 12, 4))
 	return params
 
-def do_end(state, params, pg=None):
+def do_end(state, params, pg=None, verbose=True):
 	s = state.se.eval_upto(params['f'], 5)
 	assert len(s) == 1
 	assert s[0] == 0x0
