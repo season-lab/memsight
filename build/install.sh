@@ -31,6 +31,6 @@ sudo -H pip install -r memsight/requirements.txt
 
 # patches
 echo "Applying patches"
-cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
+cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/angr
 patch -p1 < ~/memsight/build/0001-Fix-wrong-ancestry-in-path-merging-issue-761-772.patch
 cd ~
