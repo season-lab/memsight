@@ -8,10 +8,11 @@ sudo apt-get update >/dev/null || true
 
 # dependencies
 echo "Installing dependencies..."
-sudo apt-get install -y sudo nano python-pip time git
+sudo apt-get install -y sudo nano python-pip time git python-dev build-essential
 
 # virtualenv
 echo "Creating virtualenv"
+sudo pip install virtualenv virtualenvwrapper
 mkvirtualenv $VIRTUALENV_NAME
 workon memsight
 
