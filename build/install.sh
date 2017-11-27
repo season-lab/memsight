@@ -22,8 +22,12 @@ mkvirtualenv $VIRTUALENV_NAME || true
 echo "Installing angr..."
 sudo pip install -r requirements.txt
 
+# clone
+echo "Cloning..."
+git clone git@github.com:season-lab/fully-symbolic-memory.git memsight
+
 # patches
 echo "Applying patches"
 cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
-patch -p1 < build/0001-Fix-wrong-ancestry-in-path-merging-issue-761-772.patch
+patch -p1 < ~/memsight/build/0001-Fix-wrong-ancestry-in-path-merging-issue-761-772.patch
 cd ~
