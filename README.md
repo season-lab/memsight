@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/season-lab/fully-symbolic-memory.svg?token=aY5YvgCjsjn9EnyWAi6e&branch=master)](https://travis-ci.com/season-lab/fully-symbolic-memory)
+
 ## Overview
 
 - `explore.py`: main script, line-by-line exploration
