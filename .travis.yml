@@ -1,5 +1,5 @@
 sudo: required
 dist: trusty
 
-install: install.sh
+install: build/install.sh
 script: tests/travis-test.sh
