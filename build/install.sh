@@ -15,8 +15,8 @@ echo "Creating virtualenv"
 sudo pip install virtualenv virtualenvwrapper
 export WORKON_HOME=$HOME/.virtualenvs
 source /usr/local/bin/virtualenvwrapper.sh
-mkvirtualenv $VIRTUALENV_NAME
-workon memsight
+mkvirtualenv $VIRTUALENV_NAME || true
+# workon memsight
 
 # angr stuff
 echo "Installing angr..."
