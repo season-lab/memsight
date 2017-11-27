@@ -1,15 +1,15 @@
-import executor
 import sys
-import factory
-import utils
 import logging
+
+from executor import executor
+from memory import factory
+from utils import parse_args
 
 if __name__ == '__main__':
 
     #logging.getLogger('angr').setLevel(logging.DEBUG)
-    #logging.getLogger('simuvex').setLevel(logging.DEBUG)
 
-    t, file = utils.parse_args(sys.argv)
+    t, file = parse_args(sys.argv)
 
     explorer = executor.Executor(file)
     angr_project = explorer.project

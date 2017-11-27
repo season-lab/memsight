@@ -9,18 +9,16 @@ import traceback
 import bisect
 import cffi
 import resource
-import sorted_collection
 import pdb
 import time
 
 # our stuff
-import utils
-from pitree import pitree
-from pitree import untree
-import paged_memory
-import unpaged_memory
+from memory.lib import paged_memory, sorted_collection
+from memory.lib.pitree import pitree
+from utils import get_obj_bytes, reverse_addr_reg, get_unconstrained_bytes, convert_to_ast, full_stack, \
+    resolve_location_name
 
-l = logging.getLogger('naiveFullySymbolicMemory')
+l = logging.getLogger('memsight')
 l.setLevel(logging.DEBUG)
 
 # profiling vars
@@ -82,7 +80,7 @@ class MemoryItem(object):
     @property
     def obj(self):
         if type(self._obj) in (list,):
-            self._obj = utils.get_obj_bytes(self._obj[0], self._obj[1], 1)[0]
+            self._obj = get_obj_bytes(self._obj[0], self._obj[1], 1)[0]
         return self._obj
 
     def __repr__(self):
@@ -351,12 +349,12 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         if self._id == 'reg': 
 
             if type(addr) in (int, long):
-                reg_name = utils.reverse_addr_reg(self, addr)
+                reg_name = reverse_addr_reg(self, addr)
                 if self.verbose: self.log("\t" + str(addr) + " => " + str(reg_name))
 
             if isinstance(addr, basestring):
                 reg_name = addr
-                addr, size_reg = utils.resolve_location_name(self, addr)
+                addr, size_reg = resolve_location_name(self, addr)
                 if self.verbose: self.log("\t" + str(addr) + " => " + str(reg_name))
 
                 # a load from a register, derive size from reg size
@@ -508,7 +506,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
 
                     else:
 
-                        obj = utils.get_unconstrained_bytes(self.state, "bottom", 8, memory=self)
+                        obj = get_unconstrained_bytes(self.state, "bottom", 8, memory=self)
 
                         if(self.category == 'mem' and
                                     angr.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY not in self.state.options):
@@ -714,7 +712,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                 self.state.se.add(self.state.se.ULE(size, conditional_size[1]))
 
             # convert data to BVV if concrete
-            data = utils.convert_to_ast(self.state, data, size if isinstance(size, (int, long)) else None)
+            data = convert_to_ast(self.state, data, size if isinstance(size, (int, long)) else None)
 
             if type(size) in (int, long) or conditional_size is not None:
 
@@ -1234,20 +1232,12 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
             if type(e) in (angr.errors.SimSegfaultError,):
                 raise e
 
-            print utils.full_stack()
+            print full_stack()
 
     @profile
     def merge(self, others, merge_conditions, common_ancestor=None):
 
         assert common_ancestor is not None
-
-        print "Merging..."
-        #print merge_conditions
-
-        #print self.state.se.constraints
-        #print others[0].state.se.constraints
-        #print self.state.se.any_n_int(self.state.regs.edi, 10)
-        #print others[0].state.se.any_n_int(others[0].state.regs.edi, 10)
 
         if self.angr_memory is not None:
             self._compare_with_angr(op='pre_merge')
@@ -1278,10 +1268,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
     @profile
     def _merge_concrete_memory(self, other, merge_conditions, common_ancestor, verbose=False):
 
-        print "Merging concrete"
-        start_time = time.time()
-
-        #pdb.set_trace()
+        # start_time = time.time()
 
         try:
 
@@ -1384,10 +1371,8 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                         assert len(merged_value) > 0
                         self._concrete_memory[page_index * 0x1000 + offset] = merged_value if len(merged_value) > 1 else merged_value[0]
 
-            #pdb.set_trace()
-
-            end_time = time.time()
-            print "Merge concrete: " + str(end_time-start_time)
+            # end_time = time.time()
+            # print "Merge concrete: " + str(end_time-start_time)
 
             return count
 

@@ -20,14 +20,16 @@ def get_permission_backer(proj):
 
 def parse_args(argv):
     if len(argv) < 2 or len(argv) > 3:
-        print "python " + sys.argv[0] + " [0|1] binary" 
+        print "python " + sys.argv[0] + " [0|1] <binary>"
+        print "0: angr default memory"
+        print "1: memsight memory"
         sys.exit(1)
 
     t = 0
     file = argv[1]
     if len(argv) == 3:
         t = int(argv[1])
-        assert t == 0 or t == 1 or t == 2 or t == 3
+        assert t == 0 or t == 1
         file = argv[2]
 
     return t, file
