@@ -1,0 +1,69 @@
+From fcf7d376505e53eaa878325fbf70d4c191416a98 Mon Sep 17 00:00:00 2001
+From: ercoppa <ercoppa@gmail.com>
+Date: Sat, 25 Nov 2017 08:16:04 +0100
+Subject: [PATCH] Fix wrong ancestry in path merging: issue #761 (#772)
+
+* FIX: Veritesting should return errored and pruned states
+
+* Fix issue #761
+
+* FIX: veritesting only checks boundaries against addrs at the top of BBs
+---
+ angr/analyses/veritesting.py  | 10 ++++++++++
+ angr/state_plugins/history.py | 13 +++++++++++++
+ 2 files changed, 23 insertions(+)
+
+diff --git a/angr/analyses/veritesting.py b/angr/analyses/veritesting.py
+index 22d3ce5..b435927 100644
+--- a/angr/analyses/veritesting.py
++++ b/angr/analyses/veritesting.py
+@@ -480,6 +480,16 @@ class Veritesting(Analysis):
+             l.debug("... terminating Veritesting due to overbound")
+             return True
+ 
++        try:
++            # If the address is not in the list (which could mean it is
++            # not at the top of a block), check directly in the blocks
++            # (Blocks are repeatedly created for every check, but with
++            # the IRSB cache in angr lifter it should be OK.)
++            if set(self._boundaries).intersection(set(self.project.factory.block(ip).instruction_addrs)):
++                return True
++        except (AngrError, SimError):
++            pass
++
+         if (
+             ip in self._loop_heads # This is the beginning of the loop
+             or state.history.jumpkind == 'Ijk_Call' # We also wanna catch recursive function calls
+diff --git a/angr/state_plugins/history.py b/angr/state_plugins/history.py
+index 25469c5..609365f 100644
+--- a/angr/state_plugins/history.py
++++ b/angr/state_plugins/history.py
+@@ -1,5 +1,6 @@
+ import operator
+ import logging
++import itertools
+ 
+ import claripy
+ 
+@@ -114,6 +115,18 @@ class SimStateHistory(SimStatePlugin):
+         self.merged_from.extend(h for h in others)
+         self.merge_conditions = merge_conditions
+ 
++        # we must fix this in order to get
++        # correct results when using constraints_since()
++        self.parent = common_ancestor if common_ancestor is not None else self.parent
++
++        # recents_events must be the join of all recents events
++        # in order to keep constraints_since() correct
++        self.recent_events = [e.recent_events for e in itertools.chain([self], others)]
++        # hard to say what we should do with these others list of things...
++        self.recent_bbl_addrs = [e.recent_bbl_addrs for e in itertools.chain([self], others)]
++        self.recent_ins_addrs = [e.recent_ins_addrs for e in itertools.chain([self], others)]
++        self.recent_stack_actions = [e.recent_stack_actions for e in itertools.chain([self], others)]
++
+         return True
+ 
+     def widen(self, others):
+-- 
+2.7.4
+
