@@ -9,18 +9,18 @@ import logging
 
 class Executor(object):
 
-    def __init__(self, binary):
+    def __init__(self, f):
 
-        self.start, self.avoid, self.end, self.config = executor_config.get_target_addrs(binary)
+        self.start, self.avoid, self.end, self.config, self.binary = executor_config.get_target_addrs(f)
 
         print
-        print "Starting symbolic execution of binary: " + str(binary)
+        print "Starting symbolic execution of metabinary: " + str(f)
         print "From address: " + str(hex(self.start) if self.start is not None else 'NONE')
         print "Target addresses: " + ' '.join(map(lambda a: str(hex(a)), self.end))
         print "Avoid addresses: " + ' '.join(map(lambda a: str(hex(a)), self.avoid))
         print
 
-        self.project = angr.Project(binary, load_options={'auto_load_libs' : False})
+        self.project = angr.Project(self.binary, load_options={'auto_load_libs' : False})
 
     def _print_constraints(self, constraints, old_constraints):
         

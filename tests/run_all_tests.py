@@ -12,7 +12,8 @@ for t in tests:
 	print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	print "% TEST: " + t
 	print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	os.system('time -p python -u run.py ' + str(n) + ' tests/' + t)
+	b = os.path.dirname(os.path.realpath(sys.argv[0])) + '/' + t
+	os.system('time -p python -u ../run.py ' + str(n) + ' ' + b)
 	print
 	print
 
