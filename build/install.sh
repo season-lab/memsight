@@ -21,7 +21,9 @@ mkvirtualenv $VIRTUALENV_NAME || true
 
 # clone
 echo "Cloning..."
-git clone git@github.com:season-lab/fully-symbolic-memory.git memsight
+if [ ! -d "memsight" ]; then
+    git clone git@github.com:season-lab/fully-symbolic-memory.git memsight
+fi
 
 # angr stuff
 echo "Installing angr..."

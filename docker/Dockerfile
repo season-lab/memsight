@@ -12,7 +12,7 @@ USER ubuntu
 WORKDIR /home/ubuntu
 
 COPY fully-symbolic-memory/build/install.sh /home/ubuntu
-#COPY fully-symbolic-memory /home/ubuntu/memsight
+COPY fully-symbolic-memory /home/ubuntu/memsight
 #COPY CGC /home/ubuntu/CGC
 
 USER ubuntu
