@@ -5,5 +5,5 @@ branches:
   only:
   - master
 
-install: build/install.sh
-script: tests/travis-test.sh
+install: ./build/install.sh
+script: ./tests/travis-test.sh
