@@ -1,13 +1,9 @@
 import os, sys, traceback
 from bcolors import bcolors
 
-currDir = os.path.dirname(os.path.realpath(__file__))
-rootDir = os.path.abspath(os.path.join(currDir, '../../memory/lib/pitree'))
-if rootDir not in sys.path: # add parent dir to paths
-    sys.path.append(rootDir)
-from node import *
-from interval import *
-from intervaltree import *
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
+from memory.lib.pitree.intervaltree import *
 
 def test_1():
     it = IntervalTree()
