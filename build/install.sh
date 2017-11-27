@@ -22,6 +22,7 @@ mkvirtualenv $VIRTUALENV_NAME || true
 # clone
 echo "Cloning..."
 if [ ! -d "memsight" ]; then
+    cd ~
     git clone git@github.com:season-lab/fully-symbolic-memory.git memsight
 fi
 
@@ -32,6 +33,7 @@ pip install -r memsight/requirements.txt
 # patches
 echo "Applying patches"
 ls ~/.virtualenvs/
+ls  ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/angr
 cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/angr
 patch -p1 < ~/memsight/build/0001-Fix-wrong-ancestry-in-path-merging-issue-761-772.patch
 cd ~
