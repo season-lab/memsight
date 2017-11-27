@@ -20,7 +20,8 @@ limitations under the License.
 """
 
 import collections, sys
-from cintervaltree import Interval, IntervalTree # use custom interval tree
+from intervaltree import * # use custom interval tree
+from interval import *
 from pympler import asizeof    
 
 # ----------------------------------------------------------------------
