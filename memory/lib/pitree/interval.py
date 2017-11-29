@@ -6,10 +6,10 @@ class Interval(object):
         self.data = data
 
     def containsPoint(self, point):
-        return self.begin <= point and self.end >= point
+        return self.begin < point and self.end >= point
 
     def overlap(self, other):
-        return not (self.begin > other.end or self.end < other.begin)
+        return not (self.begin >= other.end or self.end <= other.begin)
 
     def contains(self, other):
         return self.begin <= other.begin and self.end >= other.end
