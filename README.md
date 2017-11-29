@@ -8,7 +8,7 @@
 - `executor/executor_config.py`: parser for executor config
 - `memory/`: some memory implememtations and their dependencies (data structures)
 - `memory/angr_symbolic_memory.py`: a wrapper around angr symbolic memory
-- `memory/range_fully_symbolic_memory.py`: memsight, an implementation of a fully symbolic memory (see: [pseudocode/naive-v4](pseudocode/naive-v4/main.pdf))
+- `memory/range_fully_symbolic_memory.py`: memsight, an implementation of a fully symbolic memory (see: [pseudocode](docs/pseudocode/naive-v4/main.pdf))
 - `utils.py`: other useful stuff
 - `tests/`: testing binaries
 
