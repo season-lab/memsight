@@ -39,5 +39,6 @@ pip install -I --no-use-wheel capstone==3.0.4 # fix error import
 echo "Applying patches"
 cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
 patch -p1 < ~/memsight/build/0001-Fix-endianness.patch
+patch -p1 < ~/memsight/build/0001-Errored-isn-t-a-real-stash-anymore-paths-don-t-exist.patch
 
 exit 0
