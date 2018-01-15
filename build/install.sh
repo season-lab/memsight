@@ -9,11 +9,11 @@ sudo apt-get update >/dev/null || true
 # dependencies
 echo "Installing dependencies..."
 sudo apt-get install -y sudo nano python-pip time git python-dev build-essential
-sudo pip install -U pip
+sudo -H pip install -U pip
 
 # virtualenv
 echo "Creating virtualenv"
-sudo pip install virtualenv virtualenvwrapper
+sudo -H pip install virtualenv virtualenvwrapper
 pip install virtualenvwrapper
 export WORKON_HOME=$HOME/.virtualenvs
 source /usr/local/bin/virtualenvwrapper.sh
@@ -38,6 +38,6 @@ pip install -I --no-use-wheel capstone==3.0.4 # fix error import
 # patches
 echo "Applying patches"
 cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
-patch -p1 < ~/memsight/build/0001-Fix-wrong-ancestry-in-path-merging-issue-761-772.patch
+patch -p1 < ~/memsight/build/0001-Fix-endianness.patch
 
 exit 0

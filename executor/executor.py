@@ -149,6 +149,7 @@ class Executor(object):
             self.config.do_end(state, data, pg, verbose)
         else:
             if verbose:
+                print pg
                 print "No state has reached the target"
 
         #assert len(pg.found) > 0

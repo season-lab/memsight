@@ -16,7 +16,7 @@ class TestMemsightMemory(unittest.TestCase):
 
     def common(self, file):
         p = os.path.dirname(os.path.realpath(__file__))
-        explorer = executor.Executor(p + '/' + file)
+        explorer = executor.Executor(p + '/binary/' + file)
         angr_project = explorer.project
         mem_memory, reg_memory = factory.get_range_fully_symbolic_memory(angr_project)
         return explorer.run(mem_memory=mem_memory, reg_memory=reg_memory, verbose=False)
@@ -57,6 +57,7 @@ class TestMemsightMemory(unittest.TestCase):
         plugins = {}
         if mem_memory is not None:
             plugins['memory'] = mem_memory
+            pass
 
         state = angr_project.factory.entry_state(remove_options={angr.options.LAZY_SOLVES}, plugins=plugins)
 

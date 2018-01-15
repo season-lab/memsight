@@ -1,10 +1,14 @@
 import angr
 import claripy
+import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from memory import factory
 
 
-def check(state, obj, exp_values, conditions):
+def check(state, obj, exp_values, conditions=()):
     r = state.se.any_n_int(obj, len(exp_values) + 1, extra_constraints=conditions)
     if len(r) != len(exp_values) or set(r) != set(exp_values):
         print "Mismatch:"
@@ -53,8 +57,11 @@ def test_store_with_symbolic_addr_and_symbolic_size(state):
     val = 0x01020304
     addr = claripy.BVS('addr', 64)
     state.se.add(addr < 8)
-    state.memory.store(addr, claripy.BVV(val, 32))
+
+    state.memory.store(addr, claripy.BVV(val, 32), 4)
+
     res = state.memory.load(addr, 4)
+
     res = state.se.any_n_int(res, 20)
     assert len(res) == 1 and res[0] == val
 
@@ -94,7 +101,7 @@ def test_concrete_merge(state):
 
     s3 = s1.copy()
     guard = claripy.BVS('branch', 32)
-    s3.memory.merge([s2.memory], [guard > 0, guard <= 0], s1.memory)
+    s3.memory.merge([s2.memory], [guard > 0, guard <= 0], state.memory)
 
     res = s3.memory.load(0x0, 4)
 
@@ -145,6 +152,9 @@ def test_symbolic_merge(state):
     state.se.add(a <= 1)
     state.memory.store(a, claripy.BVV(0x5, 8))
 
+    res = state.memory.load(0x0, 1)
+    check(state, res, [5, 1])
+
     s1 = state.copy()
     s1.memory.store(0x1, claripy.BVV(0x6, 8))
     a1 = claripy.BVS('a1', 64)
@@ -164,27 +174,25 @@ def test_symbolic_merge(state):
     s3.memory.merge([s2.memory], [guard > 1, guard <= 1], s1.memory)
 
     res = s3.memory.load(0x0, 1)
-    check(state, res, [5], (a == 0,))
-    check(state, res, [1], (a == 1,))
+    check(s3, res, [5], (a == 0,))
+    check(s3, res, [1], (a == 1,))
 
     res = s3.memory.load(0x1, 1)
-    check(state, res, [7], (guard > 1, a1 == 1, ))
-    check(state, res, [6], (guard > 1, a1 == 2,))
-    check(state, res, [9], (guard <= 1, a2 == 1,))
-    check(state, res, [8], (guard <= 1, a2 == 2,))
+    check(s3, res, [7], (guard > 1, a1 == 1, ))
+    check(s3, res, [6], (guard > 1, a1 == 2,))
+    check(s3, res, [9], (guard <= 1, a2 == 1,))
+    check(s3, res, [8], (guard <= 1, a2 == 2,))
 
     res = s3.memory.load(0x2, 1)
-    check(state, res, [7], (guard > 1, a1 == 2,))
-    check(state, res, [3], (guard > 1, a1 == 1,))
-    check(state, res, [9], (guard <= 1, a2 == 2,))
-    check(state, res, [3], (guard <= 1, a2 == 1,))
+    check(s3, res, [7], (guard > 1, a1 == 2,))
+    check(s3, res, [3], (guard > 1, a1 == 1,))
+    check(s3, res, [9], (guard <= 1, a2 == 2,))
+    check(s3, res, [3], (guard <= 1, a2 == 1,))
 
     res = s3.memory.load(0x3, 1)
-    check(state, res, [4], set())
+    check(s3, res, [4], set())
 
 def test_symbolic_access(state):
-
-    endness = "Iend_LE"
 
     # an address which is in a valid region
     start_addr = state.libc.heap_location
@@ -195,7 +203,7 @@ def test_symbolic_access(state):
     #assert state.se.any_int(state.memory.permissions(start_addr + 2)) == 0x3
 
     # init memory 3 bytes starting at start_addr
-    state.memory.store(start_addr, claripy.BVV(0x0, 24), 3, endness=endness)
+    state.memory.store(start_addr, claripy.BVV(0x0, 24), 3)
 
     # a symbolic pointer that can be equal to [start_addr, start_addr + 1]
     addr = claripy.BVS('addr', 64)
@@ -207,10 +215,10 @@ def test_symbolic_access(state):
     val = 0xABCD
 
     # symbolic store at addr
-    state.memory.store(addr, claripy.BVV(val, 16), 2, endness=endness)
+    state.memory.store(addr, claripy.BVV(val, 16), 2)
 
     # symbolic load at addr
-    res = state.memory.load(addr, 2, endness=endness)
+    res = state.memory.load(addr, 2)
     res = state.se.any_n_int(res, 20)
     assert len(res) == 1 and res[0] == val
 
@@ -239,16 +247,12 @@ def test_same_operator(state):
 
 if __name__ == '__main__':
 
-    t = 3
+    t = 0
     angr_project = angr.Project("/bin/ls", load_options={'auto_load_libs': False})
 
     if t == 0:
-        mem_memory, reg_memory = factory.get_simple_fully_symbolic_memory(angr_project)
-    elif t == 1:
         mem_memory, reg_memory = None, None
-    elif t == 2:
-        mem_memory, reg_memory = factory.get_naive_fully_symbolic_memory(angr_project)
-    elif t == 3:
+    elif t == 1:
         mem_memory, reg_memory = factory.get_range_fully_symbolic_memory(angr_project)
         #mem_memory.set_verbose(True)
 
@@ -262,23 +266,25 @@ if __name__ == '__main__':
     #add_options = {simuvex.o.STRICT_PAGE_ACCESS}
     # add_options = {simuvex.o.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY}
 
-    state = angr_project.factory.entry_state(remove_options={simuvex.o.LAZY_SOLVES},
+    state = angr_project.factory.entry_state(remove_options={angr.options.LAZY_SOLVES},
                                              add_options=add_options, plugins=plugins)
-    if t == 1:
+
+    if t == 0:
         # store: add new concretization strategy
-        state.memory.write_strategies.insert(0, simuvex.concretization_strategies.SimConcretizationStrategyRange(2048))
-        state.memory.read_strategies.insert(0, simuvex.concretization_strategies.SimConcretizationStrategyRange(2048))
-
-    #test_symbolic_access(state.copy())
-
-    #test_store_with_symbolic_size(state.copy())
-    #test_store_with_symbolic_addr_and_symbolic_size(state.copy())
-
-    #test_concrete_merge(state.copy())
-    #test_concrete_merge_with_condition(state.copy())
-
-    #test_symbolic_merge(state.copy())
-
-    if t == 3:
-        test_same_operator(state.copy())
+        state.memory.write_strategies.insert(0, angr.concretization_strategies.SimConcretizationStrategyRange(2048))
+        state.memory.read_strategies.insert(0, angr.concretization_strategies.SimConcretizationStrategyRange(2048))
         pass
+
+    test_symbolic_access(state.copy())
+
+    test_store_with_symbolic_size(state.copy())
+    test_store_with_symbolic_addr_and_symbolic_size(state.copy())
+
+    test_concrete_merge(state.copy())
+    test_concrete_merge_with_condition(state.copy())
+
+    test_symbolic_merge(state.copy())
+
+    if t == 1:
+        test_same_operator(state.copy())
+
