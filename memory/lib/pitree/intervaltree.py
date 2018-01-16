@@ -22,7 +22,9 @@ class IntervalTree(object):
             if isinstance(begin, Interval):
                 interval = begin
             elif type(begin) in (int, long):
-                interval = Interval(begin, begin)
+                ris = []
+                self.root.child.search_point(begin, ris)
+                return ris
             else:
                 raise Exception("search(): wrong types")
         else:
