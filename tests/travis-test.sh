@@ -11,3 +11,7 @@ workon $VIRTUALENV_NAME
 
 # memsight
 python $DIR/run-all-tests.py
+
+# pitree
+python $DIR/pitree/test_pitree.py
+python $DIR/pitree/test_intervaltree.py
