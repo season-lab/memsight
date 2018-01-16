@@ -62,7 +62,7 @@ def test_7():
     t.add(129, 130)
 
     ris = t.search(30, 99)
-    expected = set([Interval(20, 30), Interval(5, 30), Interval(30, 35)])
+    expected = set([Interval(30, 35)])
     assert ris == expected
 
 def test_8():
@@ -77,7 +77,7 @@ def test_8():
     t.add(129, 130)
 
     ris = t.search(31, 100)
-    expected = set([Interval(100, 200), Interval(90, 100)])
+    expected = set([Interval(90, 100)])
     assert ris == expected
 
 if __name__=="__main__":

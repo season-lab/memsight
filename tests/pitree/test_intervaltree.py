@@ -10,14 +10,14 @@ def test_1():
     it.add(Interval(1,5))
     it.add(Interval(5,10))
     ris = it.search(5)
-    assert len(ris) == 2 and ris[0] == Interval(1, 5) and ris[1] == Interval(5, 10)
+    assert len(ris) == 1 and ris[0] == Interval(1, 5)
 
 def test_2():
     it = IntervalTree()
     it.add(Interval(1,5))
     it.add(Interval(6,9))
     ris = it.search(6)
-    assert len(ris) == 1 and ris[0] == Interval(6,9)
+    assert len(ris) == 0
 
 def test_3(): # left rotation
     it = IntervalTree()
@@ -62,7 +62,7 @@ def test_8(): # addi and all the same lower interval
     it.addi(2,6)
     it.addi(2,5)
     it.addi(2,3)
-    ris = it.search(0,2)
+    ris = it.search(0,3)
     expected = set([Interval(2,6), Interval(2,5), Interval(2,3)])
     assert len(ris) == 3 and set(ris) == expected
 
