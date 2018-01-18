@@ -20,8 +20,9 @@ pip install -I --no-use-wheel capstone==3.0.4 # fix error import
 # patches
 echo "Applying patches"
 cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
-patch -p1 < $DIR/0001-Fix-endianness.patch
-patch -p1 < $DIR/0001-Errored-isn-t-a-real-stash-anymore-paths-don-t-exist.patch
+for p in $DIR/*.patch; do
+    patch -p1 < $p
+done
 
 echo
 echo "Created virtualenv $VIRTUALENV_NAME. Work on it using: workon $VIRTUALENV_NAME"
