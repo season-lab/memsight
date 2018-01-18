@@ -20,6 +20,10 @@ pip install -I --no-use-wheel capstone==3.0.4 # fix error import
 # patches
 echo "Applying patches"
 cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
+
+# track angr changes
+cd angr; git init; git add . ; git commit -a -m "initial import"; cd ..
+
 for p in $DIR/*.patch; do
     patch -p1 < $p
 done

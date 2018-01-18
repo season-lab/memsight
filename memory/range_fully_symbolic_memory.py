@@ -550,24 +550,25 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                         data = self.state._inspect_getattr("reg_read_expr", data)
 
                 if not disable_actions and self.angr_memory is None:
-
-                    if angr.options.AST_DEPS in self.state.options and self.category == 'reg':
-                        data = angr.state_plugins.SimActionObject(data, reg_deps=frozenset((addr,)))
-
-                    if angr.options.AUTO_REFS in self.state.options and action is None:
-                        ref_size = size if size is not None else (data.size() / 8)
+                    if angr.options.AUTO_REFS in self.state.options and action is None and not self._abstract_backer:
+                        ref_size = size * self.state.arch.byte_width if size is not None else data.size()
                         region_type = self.category
                         if region_type == 'file':
                             # Special handling for files to keep compatibility
                             # We may use some refactoring later
                             region_type = self.id
-                        action = angr.state_plugins.SimActionData(self.state, region_type, 'read', addr=addr, data=data,
-                                                                  size=ref_size,
-                                                                  condition=condition, fallback=fallback)
-                        self.state.log.add_action(action)
+                        action = angr.state_plugins.SimActionData(self.state, region_type,
+                                                                  'write', addr=addr, data=data,
+                                                                    size=ref_size,
+                                                                    condition=condition)
+                        self.state.history.add_action(action)
 
                     if action is not None:
-                        # action.actual_addrs = [x for x in range(min_addr, max_addr + self.state.se.max_int(size))]
+                        action.actual_addrs = addr
+                        action.actual_value = action._make_object(data)  # TODO
+                        #if len(request.constraints) > 0:
+                        #    action.added_constraints = action._make_object(self.state.se.And(*request.constraints))
+                        #else:
                         action.added_constraints = action._make_object(self.state.se.true)
 
                 if self.verbose: self.log("\treturning data ")  # + str(data))
@@ -654,8 +655,8 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
               inspect=True, priv=None, disable_actions=False, ignore_endness=False, internal=False):
 
         if not internal:
-            # if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
-            if self.verbose: self.log("Storing " + str(size) + " bytes.")  # Content: " + str(data))
+            #if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
+            #if self.verbose: self.log("Storing " + str(size) + " bytes.")  # Content: " + str(data))
             pass
 
         if priv is not None: self.state.scratch.push_priv(priv)
@@ -705,6 +706,8 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                     condition = None
                 elif self.state.se.is_false(condition):
                     if priv is not None: self.state.scratch.pop_priv()
+                    print condition
+                    print "condition is false... skipping..."
                     return
 
             # store with conditional size
@@ -820,30 +823,27 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                     if self.category == 'reg': self.state._inspect('reg_write', angr.BP_AFTER)
                     if self.category == 'mem': self.state._inspect('mem_write', angr.BP_AFTER)
 
-                if not disable_actions and self.angr_memory is None:
+                if not disable_actions:
                     if angr.options.AUTO_REFS in self.state.options and action is None and not self._abstract_backer:
-
-                        ref_size = size if size is not None else (data.size() / 8)
+                        ref_size = size * self.state.arch.byte_width if size is not None else data.size()
                         region_type = self.category
                         if region_type == 'file':
                             # Special handling for files to keep compatibility
                             # We may use some refactoring later
                             region_type = self.id
-                        action = angr.state_plugins.SimActionData(self.state, region_type, 'write', addr=addr,
-                                                                  data=data,
-                                                                  size=ref_size,
-                                                                  condition=condition
-                                                                  )
-                        self.state.log.add_action(action)
+                        action = angr.state_plugins.SimActionData(self.state, region_type, 'write', addr=addr, data=data,
+                                               size=ref_size,
+                                               condition=condition
+                                               )
+                        self.state.history.add_action(action)
 
                     if action is not None:
-
-                        # action.actual_addrs = [x for x in range(min_addr, max_addr + self.state.se.max_int(size))]
+                        action.actual_addrs = addr
                         action.actual_value = action._make_object(data)  # TODO
-                        if conditional_size is not None:
-                            action.added_constraints = action._make_object(self.state.se.ULE(size, conditional_size[1]))
-                        else:
-                            action.added_constraints = action._make_object(self.state.se.true)
+                        #if len(request.constraints) > 0:
+                        #    action.added_constraints = action._make_object(self.state.se.And(*request.constraints))
+                        #else:
+                        action.added_constraints = action._make_object(self.state.se.true)
 
                 if priv is not None: self.state.scratch.pop_priv()
 
