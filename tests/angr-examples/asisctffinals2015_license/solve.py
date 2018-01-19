@@ -81,5 +81,5 @@ def test():
     assert main() == 'ASIS{8d2cc30143831881f94cb05dcf0b83e0}'
 
 if __name__ == '__main__':
-    print test()
+    test()
 
