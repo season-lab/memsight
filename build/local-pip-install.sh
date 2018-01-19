@@ -7,22 +7,24 @@ pip install virtualenvwrapper virtualenv
 
 # virtualenv
 echo "Creating virtualenv"
+
 export WORKON_HOME=$HOME/.virtualenvs
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 rmvirtualenv $VIRTUALENV_NAME || true
-mkvirtualenv $VIRTUALENV_NAME || true
+mkvirtualenv $VIRTUALENV_NAME || exit 1
 
 # angr stuff
 echo "Installing angr..."
 pip install -r $DIR/../requirements.txt
 pip install -I --no-use-wheel capstone==3.0.4 # fix error import
+pip install --force-reinstall angr
 
 # patches
 echo "Applying patches"
 cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
 
 # track angr changes
-cd angr; git init; git add . ; git commit -a -m "initial import"; cd ..
+cd angr; git init; git add . >/dev/null; git commit -a -m "initial import" >/dev/null; cd ..
 
 for p in $DIR/*.patch; do
     patch -p1 < $p

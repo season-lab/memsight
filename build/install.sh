@@ -1,6 +1,7 @@
 #!/bin/bash -e
 
 VIRTUALENV_NAME="memsight"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # update apt
 echo "Updating apt..."
