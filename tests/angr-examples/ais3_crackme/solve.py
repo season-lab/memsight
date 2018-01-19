@@ -25,7 +25,8 @@ def main(mem_type = 1):
 
     #create an initial state with a symbolic bit vector as argv1
     argv1 = claripy.BVS("argv1",100*8) #since we do not the length now, we just put 100 bytes
-    initial_state = project.factory.entry_state(args=["./crackme1",argv1], plugins=plugins)
+    initial_state = project.factory.entry_state(args=[os.path.dirname(os.path.realpath(__file__)) + "/crackme1",argv1],
+                                                plugins=plugins)
 
     #create a path group using the created initial state 
     sm = project.factory.simulation_manager(initial_state)

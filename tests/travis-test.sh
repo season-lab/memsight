@@ -18,3 +18,4 @@ python $DIR/pitree/test_intervaltree.py
 
 # angr examples
 python $DIR/angr-examples/ais3_crackme/solve.py
+python $DIR/angr-examples/asisctffinals2015_license/
