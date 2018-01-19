@@ -13,6 +13,7 @@ import pdb
 import time
 
 # our stuff
+from angr.state_plugins import SimActionObject
 from memory.lib import paged_memory, sorted_collection
 from memory.lib.pitree import pitree
 from utils import get_obj_bytes, reverse_addr_reg, get_unconstrained_bytes, convert_to_ast, full_stack, \
@@ -26,10 +27,15 @@ time_profile = {}
 count_ops = 0
 n_ite = 0
 
+profiling_enabled = False
 
 def update_counter(elapsed, f):
+
+    global profiling_enabled
     global time_profile
     global count_ops
+
+    if not profiling_enabled: return
 
     if f not in time_profile:
         time_profile[f] = [1, elapsed]
@@ -183,7 +189,8 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                  initialized=False,
                  timestamp_implicit=0,
                  angr_memory=None,
-                 debug_with_angr=False):
+                 debug_with_angr=False,
+                 profiling=False):
 
         angr.state_plugins.plugin.SimStatePlugin.__init__(self)
 
@@ -221,6 +228,9 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
 
         # required by CGC deallocate()
         self._page_size = self._concrete_memory.PAGE_SIZE
+
+        global profiling_enabled
+        profiling_enabled = profiling
 
         self.angr_memory = angr_memory
         if self.angr_memory is None and debug_with_angr:
@@ -1555,3 +1565,112 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
 
         except Exception as e:
             pdb.set_trace()
+
+    def find(self, addr, what, max_search=None, max_symbolic_bytes=None, default=None, step=1):
+        """
+        Returns the address of bytes equal to 'what', starting from 'start'. Note that,  if you don't specify a default
+        value, this search could cause the state to go unsat if no possible matching byte exists.
+
+        :param addr:               The start address.
+        :param what:                What to search for;
+        :param max_search:          Search at most this many bytes.
+        :param max_symbolic_bytes:  Search through at most this many symbolic bytes.
+        :param default:             The default value, if what you're looking for wasn't found.
+
+        :returns:                   An expression representing the address of the matching byte.
+        """
+        addr = self._raw_ast(addr)
+        what = self._raw_ast(what)
+        default = self._raw_ast(default)
+
+        if isinstance(what, str):
+            # Convert it to a BVV
+            what = claripy.BVV(what, len(what) * self.state.arch.byte_width)
+
+        r,c,m = self._find(addr, what, max_search=max_search, max_symbolic_bytes=max_symbolic_bytes, default=default,
+                           step=step)
+
+        if angr.options.AST_DEPS in self.state.options and self.category == 'reg':
+            r = SimActionObject(r, reg_deps=frozenset((addr,)))
+
+        return r,c,m
+
+    def _find(self, start, what, max_search=None, max_symbolic_bytes=None, default=None, step=1):
+        if max_search is None:
+            max_search = angr.state_plugins.SimSymbolicMemory.DEFAULT_MAX_SEARCH
+
+        if isinstance(start, (int, long)):
+            start = self.state.se.BVV(start, self.state.arch.bits)
+
+        constraints = [ ]
+        remaining_symbolic = max_symbolic_bytes
+        seek_size = len(what)//self.state.arch.byte_width
+        symbolic_what = self.state.se.symbolic(what)
+
+        chunk_start = 0
+        chunk_size = max(0x100, seek_size + 0x80)
+        chunk = self.load(start, chunk_size, endness="Iend_BE")
+
+        cases = [ ]
+        match_indices = [ ]
+        offsets_matched = [ ] # Only used in static mode
+
+        import itertools
+        for i in itertools.count(step=step):
+            if i > max_search - seek_size:
+                break
+            if remaining_symbolic is not None and remaining_symbolic == 0:
+                break
+            if i - chunk_start > chunk_size - seek_size:
+                chunk_start += chunk_size - seek_size + 1
+                chunk = self.load(start+chunk_start, chunk_size,
+                        endness="Iend_BE", ret_on_segv=True)
+
+            chunk_off = i-chunk_start
+            b = chunk[chunk_size*self.state.arch.byte_width - chunk_off*self.state.arch.byte_width - 1 : chunk_size*self.state.arch.byte_width - chunk_off*self.state.arch.byte_width - seek_size*self.state.arch.byte_width]
+            cases.append([b == what, start + i])
+            match_indices.append(i)
+
+            if self.state.mode == 'static':
+                si = b._model_vsa
+                what_si = what._model_vsa
+
+                if isinstance(si, claripy.vsa.StridedInterval):
+                    if not si.intersection(what_si).is_empty:
+                        offsets_matched.append(start + i)
+
+                    if si.identical(what_si):
+                        break
+
+                    if si.cardinality != 1:
+                        if remaining_symbolic is not None:
+                            remaining_symbolic -= 1
+                else:
+                    # Comparison with other types (like IfProxy or ValueSet) is not supported
+                    if remaining_symbolic is not None:
+                        remaining_symbolic -= 1
+
+            else:
+                # other modes (e.g. symbolic mode)
+                if not b.symbolic and not symbolic_what and self.state.se.eval(b) == self.state.se.eval(what):
+                    break
+                else:
+                    if b.symbolic and remaining_symbolic is not None:
+                        remaining_symbolic -= 1
+
+        if self.state.mode == 'static':
+            r = self.state.se.ESI(self.state.arch.bits)
+            for off in offsets_matched:
+                r = r.union(off)
+
+            constraints = [ ]
+            return r, constraints, match_indices
+
+        else:
+            if default is None:
+                default = 0
+                constraints += [ self.state.se.Or(*[ c for c,_ in cases]) ]
+
+            #l.debug("running ite_cases %s, %s", cases, default)
+            r = self.state.se.ite_cases(cases, default)
+            return r, constraints, match_indices

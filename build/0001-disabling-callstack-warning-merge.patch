@@ -1,0 +1,13 @@
+diff --git a/angr/state_plugins/callstack.py b/state_plugins/callstack.py
+index ca510db..60961a3 100644
+--- a/angr/state_plugins/callstack.py
++++ b/angr/state_plugins/callstack.py
+@@ -64,7 +64,7 @@ class CallStack(SimStatePlugin):
+             self.stack_ptr = 2**(state.arch.bits) - 1
+ 
+     def merge(self, others, merge_conditions, common_ancestor=None):
+-        l.warning("Merging not implemented for callstacks!")
++        #l.warning("Merging not implemented for callstacks!")
+         return
+ 
+     def widen(self, others):

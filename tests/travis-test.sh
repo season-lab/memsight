@@ -15,3 +15,6 @@ python $DIR/run-all-tests.py
 # pitree
 python $DIR/pitree/test_pitree.py
 python $DIR/pitree/test_intervaltree.py
+
+# angr examples
+python $DIR/angr-examples/ais3_crackme/solve.py
