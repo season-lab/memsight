@@ -12,7 +12,7 @@ def main(mem_type = 1):
     plugins = {}
     if mem_type == 1:
         mem_memory, reg_memory = factory.get_range_fully_symbolic_memory(p)
-    plugins['memory'] = mem_memory
+        plugins['memory'] = mem_memory
 
     # Create a blank state
     state = p.factory.blank_state(plugins=plugins)
@@ -81,5 +81,5 @@ def test():
     assert main() == 'ASIS{8d2cc30143831881f94cb05dcf0b83e0}'
 
 if __name__ == '__main__':
-    print main()
+    print test()
 

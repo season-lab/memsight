@@ -16,7 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../../'))
 from memory import factory
 
 def main(mem_type = 1):
-    project = angr.Project("./ais3_crackme")
+    project = angr.Project(os.path.dirname(os.path.realpath(__file__)) + "/ais3_crackme")
 
     plugins = {}
     if mem_type == 1:
@@ -25,7 +25,7 @@ def main(mem_type = 1):
 
     #create an initial state with a symbolic bit vector as argv1
     argv1 = claripy.BVS("argv1",100*8) #since we do not the length now, we just put 100 bytes
-    initial_state = project.factory.entry_state(args=[os.path.dirname(os.path.realpath(__file__)) + "/crackme1",argv1],
+    initial_state = project.factory.entry_state(args=["./crackme1",argv1],
                                                 plugins=plugins)
 
     #create a path group using the created initial state 
