@@ -1,0 +1,113 @@
+From dad6f257bce60d5fbd66c78314db636c043aa164 Mon Sep 17 00:00:00 2001
+From: Fish <fish@cs.ucsb.edu>
+Date: Tue, 19 Dec 2017 13:22:27 +0800
+Subject: [PATCH] Deprecate SimStateHistory.strongref_state and
+ EFFICIENT_STATE_MERGING.
+
+- Allow passing in the common ancestor history instance to
+  SimState.merge().
+- Fix the incorrect implementation of constraint merging in
+  SimStateHistory.merge().
+---
+ angr/manager.py               |  3 ++-
+ angr/sim_state.py             | 20 ++++++++++++++------
+ angr/state_plugins/history.py | 20 ++++++++++++++------
+ 3 files changed, 30 insertions(+), 13 deletions(-)
+
+diff --git a/angr/manager.py b/angr/manager.py
+index c4dbd8c..e630f17 100644
+--- a/angr/manager.py
++++ b/angr/manager.py
+@@ -736,7 +736,8 @@ class SimulationManager(ana.Storable):
+             o = optimal[0]
+             m, _, _ = o.merge(*optimal[1:],
+                               merge_conditions=constraints,
+-                              common_ancestor=common_history.strongref_state
++                              common_ancestor=common_history.strongref_state,
++                              common_ancestor_history=common_history
+                               )
+ 
+         else:
+diff --git a/angr/sim_state.py b/angr/sim_state.py
+index a2b57e9..50120c6 100644
+--- a/angr/sim_state.py
++++ b/angr/sim_state.py
+@@ -497,6 +497,7 @@ class SimState(ana.Storable): # pylint: disable=R0904
+         merge_conditions = kwargs.pop('merge_conditions', None)
+         common_ancestor = kwargs.pop('common_ancestor', None)
+         plugin_whitelist = kwargs.pop('plugin_whitelist', None)
++        common_ancestor_history = kwargs.pop('common_ancestor_history', None)
+ 
+         if len(kwargs) != 0:
+             raise ValueError("invalid arguments: %s" % kwargs.keys())
+@@ -547,15 +548,21 @@ class SimState(ana.Storable): # pylint: disable=R0904
+                 for t,tp in zip(others, their_plugins)
+             ]
+ 
++            plugin_common_ancestor = (
++                common_ancestor.plugins[p] if
++                (common_ancestor is not None and p in common_ancestor.plugins) else
++                None
++            )
++            if plugin_common_ancestor is None and \
++                    plugin_class is SimStateHistory and \
++                    common_ancestor_history is not None:
++                plugin_common_ancestor = common_ancestor_history
++
+             plugin_state_merged = our_filled_plugin.merge(
+-                their_filled_plugins, merge_conditions, common_ancestor=(
+-                    common_ancestor.plugins[p] if
+-                    (common_ancestor is not None and p in common_ancestor.plugins) else
+-                    None
+-                )
++                their_filled_plugins, merge_conditions, common_ancestor=plugin_common_ancestor,
+             )
+             if plugin_state_merged:
+-                l.debug('Merging occured in %s', p)
++                l.debug('Merging occurred in %s', p)
+                 merging_occurred = True
+ 
+         merged.add_constraints(merged.se.Or(*merge_conditions))
+@@ -863,6 +870,7 @@ class SimState(ana.Storable): # pylint: disable=R0904
+ from .state_plugins.symbolic_memory import SimSymbolicMemory
+ from .state_plugins.fast_memory import SimFastMemory
+ from .state_plugins.abstract_memory import SimAbstractMemory
++from .state_plugins.history import SimStateHistory
+ from .errors import SimMergeError, SimValueError, SimStateError, SimSolverModeError
+ from .state_plugins.inspect import BP_AFTER, BP_BEFORE
+ from .state_plugins.sim_action import SimActionConstraint
+diff --git a/angr/state_plugins/history.py b/angr/state_plugins/history.py
+index 609365f..ae688e2 100644
+--- a/angr/state_plugins/history.py
++++ b/angr/state_plugins/history.py
+@@ -119,13 +119,21 @@ class SimStateHistory(SimStatePlugin):
+         # correct results when using constraints_since()
+         self.parent = common_ancestor if common_ancestor is not None else self.parent
+ 
+-        # recents_events must be the join of all recents events
+-        # in order to keep constraints_since() correct
+-        self.recent_events = [e.recent_events for e in itertools.chain([self], others)]
++        self.recent_events = [e.recent_events for e in itertools.chain([self], others)
++                              if not isinstance(e, SimActionConstraint)
++                              ]
++
++        # rebuild recent constraints
++        recent_constraints = [ h.constraints_since(common_ancestor) for h in itertools.chain([self], others) ]
++        combined_constraint = self.state.solver.Or(
++            *[ self.state.solver.simplify(self.state.solver.And(*history_constraints)) for history_constraints in recent_constraints ]
++        )
++        self.recent_events.append(SimActionConstraint(self.state, combined_constraint))
++
+         # hard to say what we should do with these others list of things...
+-        self.recent_bbl_addrs = [e.recent_bbl_addrs for e in itertools.chain([self], others)]
+-        self.recent_ins_addrs = [e.recent_ins_addrs for e in itertools.chain([self], others)]
+-        self.recent_stack_actions = [e.recent_stack_actions for e in itertools.chain([self], others)]
++        #self.recent_bbl_addrs = [e.recent_bbl_addrs for e in itertools.chain([self], others)]
++        #self.recent_ins_addrs = [e.recent_ins_addrs for e in itertools.chain([self], others)]
++        #self.recent_stack_actions = [e.recent_stack_actions for e in itertools.chain([self], others)]
+ 
+         return True
+ 
+-- 
+2.7.4
+

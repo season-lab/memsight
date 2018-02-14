@@ -25,7 +25,7 @@ def parse_args(argv):
         print "1: memsight memory"
         sys.exit(1)
 
-    t = 0
+    t = 1
     file = argv[1]
     if len(argv) == 3:
         t = int(argv[1])

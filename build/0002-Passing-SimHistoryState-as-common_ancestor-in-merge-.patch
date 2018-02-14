@@ -1,0 +1,26 @@
+From 8ac535e5e6bc542cbc876c61b2eea550929d30bf Mon Sep 17 00:00:00 2001
+From: Emilio Coppa <ercoppa@gmail.com>
+Date: Wed, 14 Feb 2018 18:25:16 +0100
+Subject: [PATCH] Passing SimHistoryState as common_ancestor in merge()
+ whenever the actual plugin ancestor cannot be recovered
+
+---
+ angr/sim_state.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/angr/sim_state.py b/angr/sim_state.py
+index dc1417c..befa475 100644
+--- a/angr/sim_state.py
++++ b/angr/sim_state.py
+@@ -558,7 +558,7 @@ class SimState(ana.Storable): # pylint: disable=R0904
+                 None
+             )
+             if plugin_common_ancestor is None and \
+-                    plugin_class is SimStateHistory and \
++                    (plugin_class is SimStateHistory or plugin_class.__name__ == "SymbolicMemory") and \
+                     common_ancestor_history is not None:
+                 plugin_common_ancestor = common_ancestor_history
+ 
+-- 
+2.7.4
+

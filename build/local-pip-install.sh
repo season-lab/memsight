@@ -17,7 +17,7 @@ mkvirtualenv $VIRTUALENV_NAME || exit 1
 echo "Installing angr..."
 pip install -r $DIR/../requirements.txt
 pip install -I --no-use-wheel capstone==3.0.4 # fix error import
-pip install --force-reinstall angr
+pip install --force-reinstall angr claripy
 
 # patches
 echo "Applying patches"

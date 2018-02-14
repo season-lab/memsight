@@ -13,7 +13,7 @@ import pdb
 import time
 
 # our stuff
-from angr.state_plugins import SimActionObject
+from angr.state_plugins import SimActionObject, SimStateHistory
 from memory.lib import paged_memory, sorted_collection
 from memory.lib.pitree import pitree
 from utils import get_obj_bytes, reverse_addr_reg, get_unconstrained_bytes, convert_to_ast, full_stack, \
@@ -201,8 +201,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         self._arch = arch
         self._endness = "Iend_BE" if endness is None else endness
 
-        self.timestamp = timestamp
-        self.timestamp_implicit = timestamp_implicit
+        self._initial_timestamps = [timestamp, timestamp_implicit]
 
         self._concrete_memory = paged_memory.PagedMemory(self) if concrete_memory is None else concrete_memory
         self._symbolic_memory = pitree.pitree() if symbolic_memory is None else symbolic_memory
@@ -235,6 +234,36 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         self.angr_memory = angr_memory
         if self.angr_memory is None and debug_with_angr:
             self.angr_memory = angr.state_plugins.SimSymbolicMemory(memory_backer=memory_backer, permissions_backer=permissions_backer, memory_id='mem')
+
+    @property
+    def timestamp(self):
+        assert self.state is not None
+        self.init_timestamps()
+        return self.state.history.timestamps[0]
+
+    @timestamp.setter
+    def timestamp(self, value):
+        assert self.state is not None
+        self.init_timestamps()
+        self.state.history.timestamps[0] = value
+
+    @property
+    def implicit_timestamp(self):
+        assert self.state is not None
+        self.init_timestamps()
+        return self.state.history.timestamps[1]
+
+    @implicit_timestamp.setter
+    def implicit_timestamp(self, value):
+        assert self.state is not None
+        self.init_timestamps()
+        self.state.history.timestamps[1] = value
+
+    def init_timestamps(self):
+        assert self.state is not None
+        if self._initial_timestamps is not None:
+            self.state.history.timestamps = self._initial_timestamps
+            self._initial_timestamps = None
 
     @property
     def _pages(self):
@@ -528,9 +557,9 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                             if self.verbose: self.log("\t\tDoing an mplicit store...")
 
                             # implicit store...
-                            self.timestamp_implicit -= 1
+                            self.implicit_timestamp -= 1
                             self._symbolic_memory.add(min_addr + k, max_addr + k + 1,
-                                                      MemoryItem(addr + k, obj, self.timestamp_implicit, None))
+                                                      MemoryItem(addr + k, obj, self.implicit_timestamp, None))
 
                         if self.verbose: self.log("\tAdding ite cases: " + str(len(P)))
                         obj = self.build_merged_ite(addr + k, P, obj)
@@ -1016,7 +1045,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                            timestamp=self.timestamp,
                            initializable=self._initializable.copy(),
                            initialized=self._initialized,
-                           timestamp_implicit=self.timestamp_implicit,
+                           timestamp_implicit=self.implicit_timestamp,
                            angr_memory=self.angr_memory.copy() if self.angr_memory is not None else None)
 
         s._concrete_memory = self._concrete_memory.copy(s)
@@ -1266,6 +1295,12 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
     def merge(self, others, merge_conditions, common_ancestor=None):
 
         assert common_ancestor is not None
+        if type(common_ancestor) in (SimStateHistory,):
+            ancestor_timestamp = common_ancestor.timestamps[0]
+            ancestor_implicit_timestamp = common_ancestor.timestamps[1]
+        else:
+            ancestor_timestamp = common_ancestor.state.history.timestamps[0]
+            ancestor_implicit_timestamp = common_ancestor.state.history.timestamps[1]
 
         if self.angr_memory is not None:
             self._compare_with_angr(op='pre_merge')
@@ -1280,11 +1315,11 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         assert len(merge_conditions) == 1 + len(others)
         assert len(others) == 1  # ToDo: add support for merging of multiple memories
 
-        count = self._merge_concrete_memory(others[0], merge_conditions, common_ancestor)
-        count += self._merge_symbolic_memory(others[0], merge_conditions, common_ancestor)
+        count = self._merge_concrete_memory(others[0], merge_conditions)
+        count += self._merge_symbolic_memory(others[0], merge_conditions, ancestor_timestamp, ancestor_implicit_timestamp)
 
         self.timestamp = max(self.timestamp, others[0].timestamp) + 1
-        self.timestamp_implicit = min(self.timestamp_implicit, others[0].timestamp_implicit)
+        self.implicit_timestamp = min(self.implicit_timestamp, others[0].implicit_timestamp)
 
         return count
 
@@ -1294,7 +1329,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
             self._compare_with_angr(op='merge')
 
     @profile
-    def _merge_concrete_memory(self, other, merge_conditions, common_ancestor, verbose=False):
+    def _merge_concrete_memory(self, other, merge_conditions, verbose=False):
 
         # start_time = time.time()
 
@@ -1425,7 +1460,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         return LL
 
     @profile
-    def _merge_symbolic_memory(self, other, merge_conditions, common_ancestor, verbose=False):
+    def _merge_symbolic_memory(self, other, merge_conditions, ancestor_timestamp, ancestor_timestamp_implicit, verbose=False):
 
         if self.verbose: self.log("Merging symbolic addresses...")
 
@@ -1436,9 +1471,6 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         try:
 
             count = 0
-
-            ancestor_timestamp = common_ancestor.timestamp
-            ancestor_timestamp_implicit = common_ancestor.timestamp_implicit
 
             error = None
 

@@ -1,5 +1,5 @@
-angr_code
-claripy_code
+angr-code
+claripy-code
 *.pyc
 *.aux
 *.fls
