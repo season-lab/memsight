@@ -275,16 +275,29 @@ def main():
 
 def test():
     assert solve_flag_1() == 'Border relations with Canada have never been better.'
+    print "Phase #1 OK"
+
     assert solve_flag_2() == '1 2 4 8 16 32'
+    print "Phase #2 OK"
+
     args_3 = ["0 207", "1 311", "2 707", "3 256", "4 389", "5 206", "6 682", "7 327"]
     res_3 = solve_flag_3()
     assert len(res_3) == len(args_3)
     for s in args_3:
         assert s in res_3
+    print "Phase #3 OK"
+
     assert solve_flag_4() == '7 0'
+    print "Phase #4 OK"
+
     assert solve_flag_5().lower() == 'ionefg'
+    print "Phase #5 OK"
+
     assert solve_flag_6() == '4 3 2 1 6 5'
+    print "Phase #6 OK"
+
     assert solve_secret() == '22'
+    print "Phase #6+ OK"
 
 if __name__ == '__main__':
 
