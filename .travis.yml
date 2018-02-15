@@ -9,4 +9,4 @@ notifications:
   email: false
 
 install: ./build/install.sh
-script: travis_wait 60 ./tests/travis-test.sh
+script: ./tests/travis-test.sh
