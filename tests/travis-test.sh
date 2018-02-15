@@ -32,4 +32,4 @@ python $DIR/angr-examples/codegate_2017-angrybird/solve.py
 echo -e "\n\nTest: defcamp_r100"
 python $DIR/angr-examples/defcamp_r100/solve.py
 echo -e "\n\nTest: cmu_binary_bomb"
-travis_wait 60 python $DIR/angr-examples/cmu_binary_bomb/solve.py
+python $DIR/angr-examples/cmu_binary_bomb/solve.py
