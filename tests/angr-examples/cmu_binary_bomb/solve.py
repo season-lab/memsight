@@ -1,5 +1,8 @@
 ## Full writeup on flag 2 found on http://www.ctfhacker.com
 ## Binary found here: http://csapp.cs.cmu.edu/3e/bomb.tar
+import threading
+from time import sleep
+
 import angr
 import claripy
 import logging
@@ -7,6 +10,8 @@ from struct import unpack
 
 import sys
 import os
+
+import thread
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../'))
 
@@ -299,9 +304,20 @@ def test():
     assert solve_secret() == '22'
     print "Phase #6+ OK"
 
+def travis_keep_alive():
+    # travis kills a job if not output is emitted
+    while True:
+        sleep(60 * 5) # 5 mins
+        print "Alive..."
+
 if __name__ == '__main__':
 
     # logging.basicConfig()
     # logging.getLogger('angr.surveyors.explorer').setLevel(logging.DEBUG)
 
+    t = threading.Thread(target=travis_keep_alive)
+    t.setDaemon(True)
+    t.start()
+
+    sleep(30)
     test()
