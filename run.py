@@ -3,6 +3,7 @@ import logging
 
 from executor import executor
 from memory import factory
+from memory import range_fully_symbolic_memory
 from utils import parse_args
 
 if __name__ == '__main__':
@@ -20,3 +21,6 @@ if __name__ == '__main__':
         mem_memory, reg_memory = factory.get_range_fully_symbolic_memory(angr_project)
 
     explorer.run(mem_memory = mem_memory, reg_memory = reg_memory)
+
+    if t == 1 and range_fully_symbolic_memory.profiling_enabled:
+        range_fully_symbolic_memory.print_profiling_time_stats()

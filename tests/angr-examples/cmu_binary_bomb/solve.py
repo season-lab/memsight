@@ -22,6 +22,7 @@ def get_project():
 
 def get_state(proj, start, mem_type = 1, remove_options = set()):
 
+    mem_type = int(sys.argv[1]) if len(sys.argv) > 1 else mem_type
     plugins = {}
     if mem_type == 1:
         mem_memory, reg_memory = factory.get_range_fully_symbolic_memory(proj)

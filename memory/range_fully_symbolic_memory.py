@@ -16,7 +16,7 @@ import time
 from angr.state_plugins import SimActionObject, SimStateHistory
 from memory.lib import paged_memory, sorted_collection
 from memory.lib.pitree import pitree
-from utils import get_obj_bytes, reverse_addr_reg, get_unconstrained_bytes, convert_to_ast, full_stack, \
+from utils import get_obj_byte, reverse_addr_reg, get_unconstrained_bytes, convert_to_ast, full_stack, \
     resolve_location_name
 
 log = logging.getLogger('memsight')
@@ -55,10 +55,9 @@ def update_counter(elapsed, f):
         print
 
 
-# noinspection PyUnusedLocal
-def print_profiling_time_stats(depth, pg):
+def print_profiling_time_stats(depth=None, pg=None):
     print
-    print "Profiling stats at depth=" + str(depth) + ":"
+    print "Profiling stats" + ("at depth=" + str(depth) if depth is not None else "") + ":"
     print
     for ff in time_profile:
         print "\t" + str(ff) + ": ncall=" + str(time_profile[ff][0]) + " ctime=" + str(time_profile[ff][1])
@@ -90,7 +89,7 @@ class MemoryItem(object):
     @property
     def obj(self):
         if type(self._obj) in (list,):
-            self._obj = get_obj_bytes(self._obj[0], self._obj[1], 1)[0]
+            self._obj = get_obj_byte(self._obj[0], self._obj[1])
         return self._obj
 
     def __repr__(self):
@@ -536,6 +535,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
 
                     # if self.verbose: self.log("\tLoading from: " + str(hex(addr + k) if type(addr) in (long, int) else (addr + k)))
 
+
                     P = self._concrete_memory.find(min_addr + k, max_addr + k, True)
 
                     P += [x.data for x in self._symbolic_memory.search(min_addr + k, max_addr + k + 1)]
@@ -640,6 +640,9 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
     @profile
     def build_merged_ite(self, addr, P, obj):
 
+        #op_start_time = time.time()
+        #print "Elapsed time: " + str(time.time() - op_start_time)
+
         N = len(P)
         merged_p = []
         for i in range(N):
@@ -649,8 +652,10 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
 
             is_good_candidate = type(p.addr) in (int, long) and p.guard is None
             mergeable = False
+
             if len(merged_p) > 0 and is_good_candidate \
                     and p.addr == merged_p[-1].addr + 1:
+
 
                 prev_v = merged_p[-1].obj
                 if v.op == 'BVV':

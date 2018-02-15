@@ -1,6 +1,9 @@
 import angr
 import sys
 
+import claripy
+
+
 def get_permission_backer(proj):
     permission_map = {}
     for obj in proj.loader.all_objects:
@@ -47,6 +50,18 @@ def get_unconstrained_bytes(state, name, bits, source=None, memory=None):
     #if memory.verbose: memory.log("\treturning fully unconconstrained bytes")
     return state.se.Unconstrained(name, bits)
 
+def get_obj_byte(obj, offset):
+
+    # BVV slicing is extremely slow...
+    if obj.op == 'BVV':
+        assert type(obj.args[0]) in (long,int)
+        value = obj.args[0]
+        return claripy.BVV(value >> 8 * (len(obj) / 8 - 1 - offset) & 0xFF, 8)
+
+    # slice the object using angr
+    left = len(obj) - (offset * 8) - 1
+    right = left - 8 + 1
+    return obj[left:right]
 
 def get_obj_bytes(obj, offset, size):
 
@@ -56,7 +71,7 @@ def get_obj_bytes(obj, offset, size):
 
     size = min(size, (len(obj) / 8) - offset)
 
-    # slice the object
+    # slice the object... very slow :/
     left = len(obj) - (offset * 8) - 1
     right = left - (size * 8) + 1
     return obj[left:right], size, size
