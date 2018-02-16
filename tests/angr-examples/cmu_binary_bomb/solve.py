@@ -13,6 +13,8 @@ import os
 
 import thread
 
+from angr import exploration_techniques
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../'))
 
 from memory import factory
@@ -28,7 +30,19 @@ def get_state(proj, start, mem_type = 1, remove_options = set()):
         mem_memory, reg_memory = factory.get_range_fully_symbolic_memory(proj)
         plugins['memory'] = mem_memory
 
-    return proj.factory.blank_state(addr=start, plugins=plugins, remove_options=remove_options)
+    add_options = None
+    #add_options = {angr.options.CACHELESS_SOLVER}
+
+    state = proj.factory.blank_state(addr=start, plugins=plugins, remove_options=remove_options, add_options=add_options)
+    if mem_type == 0:
+        state.memory.write_strategies.insert(0,
+                                                 angr.concretization_strategies.SimConcretizationStrategyRange(
+                                                     sys.maxint))
+        state.memory.read_strategies.insert(0,
+                                                angr.concretization_strategies.SimConcretizationStrategyRange(
+                                                    sys.maxint))
+
+    return state
 
 class readline_hook(angr.SimProcedure):
     def run(self):
@@ -170,12 +184,28 @@ def solve_flag_4():
     state = get_state(proj, proj.kb.obj.get_symbol('phase_4').rebased_addr, remove_options={angr.options.LAZY_SOLVES})
 
     sm = proj.factory.simulation_manager(state)
-    sm.explore(find=find, avoid=avoid)
+
+    tech = exploration_techniques.Explorer(find=find,
+                                           avoid=avoid)
+    sm.use_technique(tech)
+
+    while len(sm.active) > 0:
+        print sm
+        sm.run(n=1)
+        if len(sm.found) > 0:
+            break
 
     found = sm.found[0]
 
     # stopped on the ret account for the stack
     # that has already been moved
+    print
+    print
+    print
+    print "Found solution.."
+    print
+    print
+    print
 
     answer = unpack('II', found.solver.eval(
         found.memory.load(found.regs.rsp - 0x18 + 0x8, 8), cast_to=str))
@@ -280,6 +310,8 @@ def main():
     print "Secret   : " + solve_secret()
 
 def test():
+
+    """
     assert solve_flag_1() == 'Border relations with Canada have never been better.'
     print "Phase #1 OK"
 
@@ -292,10 +324,11 @@ def test():
     for s in args_3:
         assert s in res_3
     print "Phase #3 OK"
-
+    """
     assert solve_flag_4() == '7 0'
     print "Phase #4 OK"
 
+    """
     assert solve_flag_5().lower() == 'ionefg'
     print "Phase #5 OK"
 
@@ -304,11 +337,12 @@ def test():
 
     assert solve_secret() == '22'
     print "Phase #6+ OK"
+    """
 
 def travis_keep_alive():
     # travis kills a job if not output is emitted
     while True:
-        sleep(60 * 5) # 5 mins
+        sleep(60 * 2)
         print "Alive..."
 
 if __name__ == '__main__':
@@ -320,5 +354,8 @@ if __name__ == '__main__':
     t.setDaemon(True)
     t.start()
 
-    sleep(30)
+    import time
+
+    start_time = time.time()
     test()
+    print "Elapsed time: " + str(time.time() - start_time)
