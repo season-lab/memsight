@@ -84,7 +84,7 @@ class Executor(object):
 
         add_options = None
         add_options = {
-                        angr.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY,
+                        #angr.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY,
                         angr.options.SYMBOLIC_WRITE_ADDRESSES,
                         #angr.options.EFFICIENT_STATE_MERGING
                        }

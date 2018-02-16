@@ -183,30 +183,16 @@ def solve_flag_4():
 
     state = get_state(proj, proj.kb.obj.get_symbol('phase_4').rebased_addr, remove_options={angr.options.LAZY_SOLVES})
 
+    state.regs.rdi = 0xABCD
+
     sm = proj.factory.simulation_manager(state)
 
-    tech = exploration_techniques.Explorer(find=find,
-                                           avoid=avoid)
-    sm.use_technique(tech)
-
-    while len(sm.active) > 0:
-        print sm
-        sm.run(n=1)
-        if len(sm.found) > 0:
-            break
+    sm.explore(find=find, avoid=avoid)
 
     found = sm.found[0]
 
     # stopped on the ret account for the stack
     # that has already been moved
-    print
-    print
-    print
-    print "Found solution.."
-    print
-    print
-    print
-
     answer = unpack('II', found.solver.eval(
         found.memory.load(found.regs.rsp - 0x18 + 0x8, 8), cast_to=str))
 
@@ -311,7 +297,6 @@ def main():
 
 def test():
 
-    """
     assert solve_flag_1() == 'Border relations with Canada have never been better.'
     print "Phase #1 OK"
 
@@ -324,11 +309,10 @@ def test():
     for s in args_3:
         assert s in res_3
     print "Phase #3 OK"
-    """
+
     assert solve_flag_4() == '7 0'
     print "Phase #4 OK"
 
-    """
     assert solve_flag_5().lower() == 'ionefg'
     print "Phase #5 OK"
 
@@ -337,7 +321,6 @@ def test():
 
     assert solve_secret() == '22'
     print "Phase #6+ OK"
-    """
 
 def travis_keep_alive():
     # travis kills a job if not output is emitted
