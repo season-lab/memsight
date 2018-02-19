@@ -40,19 +40,19 @@ echo -e "\n\nTest: cmu_binary_bomb"
 python $DIR/angr-examples/cmu_binary_bomb/solve.py
 
 echo -e "\n\nTest: CSCI-4968-MBE/crackme0x00a"
-python $DIR/tests/angr-examples/CSCI-4968-MBE/challenges/crackme0x00a/solve.py
+python $DIR/angr-examples/CSCI-4968-MBE/challenges/crackme0x00a/solve.py
 
 echo -e "\n\nTest: CSCI-4968-MBE/crackme0x01"
-python $DIR/tests/angr-examples/CSCI-4968-MBE/challenges/crackme0x01/solve.py
+python $DIR/angr-examples/CSCI-4968-MBE/challenges/crackme0x01/solve.py
 
 echo -e "\n\nTest: CSCI-4968-MBE/crackme0x02"
-python $DIR/tests/angr-examples/CSCI-4968-MBE/challenges/crackme0x02/solve.py
+python $DIR/angr-examples/CSCI-4968-MBE/challenges/crackme0x02/solve.py
 
 echo -e "\n\nTest: CSCI-4968-MBE/crackme0x03"
-python $DIR/tests/angr-examples/CSCI-4968-MBE/challenges/crackme0x03/solve.py
+python $DIR/angr-examples/CSCI-4968-MBE/challenges/crackme0x03/solve.py
 
 echo -e "\n\nTest: CSCI-4968-MBE/crackme0x04"
-python $DIR/tests/angr-examples/CSCI-4968-MBE/challenges/crackme0x04/solve.py
+python $DIR/angr-examples/CSCI-4968-MBE/challenges/crackme0x04/solve.py
 
 echo -e "\n\nTest: CSCI-4968-MBE/crackme0x05"
-python $DIR/tests/angr-examples/CSCI-4968-MBE/challenges/crackme0x05/solve.py
+python $DIR/angr-examples/CSCI-4968-MBE/challenges/crackme0x05/solve.py
