@@ -94,6 +94,10 @@ def test():
 
 
 if __name__ == '__main__':
+    import time
+
+    start_time = time.time()
     test()
+    print "Elapsed time: " + str(time.time() - start_time)
 
 

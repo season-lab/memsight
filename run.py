@@ -19,6 +19,7 @@ if __name__ == '__main__':
         mem_memory, reg_memory = factory.get_angr_symbolic_memory(angr_project)
     elif t == 1:
         mem_memory, reg_memory = factory.get_range_fully_symbolic_memory(angr_project)
+        mem_memory.verbose = False
 
     explorer.run(mem_memory = mem_memory, reg_memory = reg_memory)
 

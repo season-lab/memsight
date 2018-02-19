@@ -44,11 +44,13 @@ def main(mem_type = 1):
 
 def test():
     res = main()
-    print res
     assert res == "ais3{I_tak3_g00d_n0t3s}"
 
 
 if __name__ == '__main__':
+    import time
+    start_time =time.time()
     test()
+    print "Elapsed time: " + str(time.time()-start_time)
 
 

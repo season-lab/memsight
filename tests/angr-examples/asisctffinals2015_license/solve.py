@@ -81,5 +81,8 @@ def test():
     assert main() == 'ASIS{8d2cc30143831881f94cb05dcf0b83e0}'
 
 if __name__ == '__main__':
+    import time
+    start_time = time.time()
     test()
+    print "Elapsed time: " + str(time.time() - start_time)
 
