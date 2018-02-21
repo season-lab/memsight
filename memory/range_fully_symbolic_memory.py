@@ -615,7 +615,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                         #else:
                         action.added_constraints = action._make_object(self.state.se.true)
 
-                if self.verbose: self.log("\treturning data "))# + str(data))
+                if self.verbose: self.log("\treturning data ")# + str(data))
 
                 if angr_data is not None:
                     assert len(data) == len(angr_data)
