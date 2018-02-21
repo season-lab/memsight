@@ -43,6 +43,7 @@ def test():
 	# so we gotta check against ground truth
 	with open(os.path.dirname(os.path.realpath(__file__)) + '/input', 'wb') as fp:
 		fp.write(main())
+	os.system("chmod +x " + os.path.dirname(os.path.realpath(__file__)) + '/crackme0x04')
 	out = subprocess.check_output(os.path.dirname(os.path.realpath(__file__)) + '/crackme0x04 < ' + os.path.dirname(
 		os.path.realpath(__file__)) + '/input', shell=True)
 	assert "Password: Password OK!" in out

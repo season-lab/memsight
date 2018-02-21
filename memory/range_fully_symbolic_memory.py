@@ -14,8 +14,8 @@ import time
 
 # our stuff
 from angr.state_plugins import SimActionObject, SimStateHistory
-from memory.lib import paged_memory, sorted_collection
-from memory.lib.pitree import pitree
+from memory.lib import paged_memory, sorted_collection, unpaged_memory
+from memory.lib.pitree import pitree, untree
 from utils import get_obj_byte, reverse_addr_reg, get_unconstrained_bytes, convert_to_ast, full_stack, \
     resolve_location_name
 
@@ -24,8 +24,9 @@ log.setLevel(logging.DEBUG)
 
 # profiling vars
 time_profile = {}
+total_time = 0
+last_dump_time = 0
 count_ops = 0
-n_ite = 0
 
 profiling_enabled = False
 
@@ -34,6 +35,8 @@ def update_counter(elapsed, f):
     global profiling_enabled
     global time_profile
     global count_ops
+    global total_time
+    global last_dump_time
 
     if not profiling_enabled: return
 
@@ -43,17 +46,16 @@ def update_counter(elapsed, f):
         time_profile[f][0] += 1
         time_profile[f][1] += elapsed
 
+    total_time += elapsed
     count_ops += 1
-    if count_ops > 0 and count_ops % 10000 == 0:
-        # return
-        print
-        print "Profiling stats:"  # at depth=" + str(depth) + ":"
-        for ff in time_profile:
-            print "\t" + str(ff) + ": ncall=" + str(time_profile[ff][0]) + " ctime=" + str(time_profile[ff][1])
 
-        print "\tMemory footprint: \t" + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) + " MB"
-        print
+    if total_time > 30:
+        #print "Executing " + str(f)
+        pass
 
+    if count_ops > 0 and (count_ops % 10000 == 0 or (total_time - last_dump_time>10)):
+        print_profiling_time_stats()
+        last_dump_time = total_time
 
 def print_profiling_time_stats(depth=None, pg=None):
     print
@@ -203,7 +205,10 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         self._initial_timestamps = [timestamp, timestamp_implicit]
 
         self._concrete_memory = paged_memory.PagedMemory(self) if concrete_memory is None else concrete_memory
+        #self._concrete_memory = unpaged_memory.PagedMemory(self) if concrete_memory is None else concrete_memory
+
         self._symbolic_memory = pitree.pitree() if symbolic_memory is None else symbolic_memory
+        #self._symbolic_memory = untree.Untree() if symbolic_memory is None else symbolic_memory
 
         # some threshold
         self._maximum_symbolic_size = 8 * 1024
@@ -295,9 +300,13 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                 page_index = int(addr / page_size)
                 page_offset = addr % page_size
 
+                if self.verbose:
+                    self.log("Pre-defined memory region: addr=" +  hex(addr) + " size=" + str(size))
+
                 while size > 0:
 
-                    mo = [page_index, obj, data_offset, page_offset, min(size, page_size)]
+                    max_bytes_in_page = page_index * 0x1000 + 0x1000 - addr
+                    mo = [page_index, obj, data_offset, page_offset, min([size, page_size, max_bytes_in_page])]
                     if self.verbose: self.log("Adding initializable area: page_index=" + str(mo[0]) + " size=" + str(
                         mo[4]) + " data_offset=" + str(mo[2]))
                     self._initializable.insert(mo)
@@ -330,10 +339,10 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                 # print "Adding strategies..."
                 self.angr_memory.write_strategies.insert(0,
                                                          angr.concretization_strategies.SimConcretizationStrategyRange(
-                                                             2048))
+                                                             1024 * 100))
                 self.angr_memory.read_strategies.insert(0,
                                                         angr.concretization_strategies.SimConcretizationStrategyRange(
-                                                            2048))
+                                                            1024 * 100))
 
     @profile
     def _load_init_data(self, addr, size):
@@ -351,7 +360,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         while k < len(self._initializable) and self._initializable[k][0] <= page_end:
 
             data = self._initializable[k]  # [page_index, data, data_offset, page_offset, min(size, page_size]
-            if self.verbose: self.log("\tLoading initialized data at " + str(data[0]))
+            if self.verbose: self.log("\tLoading initialized data at " + str(data[0])) # + " => " + str(data))
             page = self._concrete_memory._pages[data[0]] if data[0] in self._concrete_memory._pages else None
             for j in range(data[4]):
 
@@ -457,16 +466,13 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
 
         cond = claripy.And(cond, cases[0].guard) if cases[0].guard is not None else cond
 
-        global n_ite
-        n_ite += 1
-
         return self.state.se.If(cond, v, obj)
 
     @profile
     def load(self, addr, size=None, condition=None, fallback=None, add_constraints=None, action=None, endness=None,
              inspect=True, disable_actions=False, ret_on_segv=False, internal=False, ignore_endness=False):
 
-        # self.log("Loading " + str(size) + " bytes at " + str(addr))
+        if self.verbose: self.log(str(self.state.ip) + " Loading " + str(size) + " bytes at " + str(addr))
 
         angr_data = None
         if self.angr_memory is not None and not internal:
@@ -475,8 +481,6 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                                               inspect=inspect)
 
         assert add_constraints is None
-
-        global n_ite
 
         # self.state.state_counter.log.append("[" + hex(self.state.regs.ip.args[0]) +"] " + "Loading " + str(size) + " bytes at " + str(addr))
 
@@ -533,8 +537,8 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                 data = None
                 for k in range(size):
 
-                    # if self.verbose: self.log("\tLoading from: " + str(hex(addr + k) if type(addr) in (long, int) else (addr + k)))
-
+                    if self.verbose: self.log("\tLoading from: " + str(hex(addr + k) if type(addr) in (long, int) else (addr + k)))
+                    #if self.verbose: self.log("\tAddr = [" + str(hex(min_addr + k)) + ", " + str(hex(max_addr + k)) + "]")
 
                     P = self._concrete_memory.find(min_addr + k, max_addr + k, True)
 
@@ -542,19 +546,20 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                     P = sorted(P, key=lambda x: (x.t, (x.addr if type(x.addr) in (int, long) else 0)))
 
                     if self.verbose: self.log("\tMatching formulas:" + str(len(P)))
-                    # if self.verbose: self.log("\tMatching formulas:" + str(P))
+                    #if self.verbose: self.log("\tMatching formulas:" + str(P))
 
                     if min_addr == max_addr and len(P) == 1 and type(P[0].addr) in (long, int) and P[0].guard is None:
                         obj = P[0].obj
 
                     else:
 
-                        obj = get_unconstrained_bytes(self.state, "bottom", 8, memory=self)
+                        name = "%s_%x" % (self.id, min_addr + k)
+                        obj = get_unconstrained_bytes(self.state, name, 8, memory=self)
 
                         if (self.category == 'mem' and
                                     angr.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY not in self.state.options):
 
-                            if self.verbose: self.log("\t\tDoing an mplicit store...")
+                            if self.verbose: self.log("\t\tDoing an implicit store...")
 
                             # implicit store...
                             self.implicit_timestamp -= 1
@@ -565,7 +570,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                         obj = self.build_merged_ite(addr + k, P, obj)
 
                     # concat single-byte objs
-                    if self.verbose: self.log("\tappending data")  #: " + str(obj))
+                    if self.verbose: self.log("\tappending data: ")# + str(obj))
                     data = self.state.se.Concat(data, obj) if data is not None else obj
 
                 if condition is not None:
@@ -610,14 +615,14 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                         #else:
                         action.added_constraints = action._make_object(self.state.se.true)
 
-                if self.verbose: self.log("\treturning data ")  # + str(data))
+                if self.verbose: self.log("\treturning data "))# + str(data))
 
                 if angr_data is not None:
                     assert len(data) == len(angr_data)
                     for k in range(len(data) / 8):
                         b1 = data[(8 * (k + 1)) - 1: (8 * k)]
                         b2 = angr_data[(8 * (k + 1)) - 1: (8 * (k))]
-                        comparison, _, _ = self._compare_bytes(b1, b2)
+                        comparison, v1, v2 = self._compare_bytes(b1, b2)
                         if not comparison:
                             print "Mismatch at offset " + str(k)
                             import pdb
@@ -656,7 +661,6 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
             if len(merged_p) > 0 and is_good_candidate \
                     and p.addr == merged_p[-1].addr + 1:
 
-
                 prev_v = merged_p[-1].obj
                 if v.op == 'BVV':
 
@@ -673,8 +677,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
             if not mergeable:
 
                 if len(merged_p) > 0:
-                    if self.verbose:
-                        self.log("\tbuilding ite with " + str(len(merged_p)) + " case(s)")  # " + str(addrs))
+                    #if self.verbose: self.log("\tbuilding ite with " + str(len(merged_p)) + " case(s)")  # " + str(addrs))
                     obj = self.build_ite(addr, merged_p, merged_p[-1].obj, obj)
                     merged_p = []
 
@@ -699,8 +702,8 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
               inspect=True, priv=None, disable_actions=False, ignore_endness=False, internal=False):
 
         if not internal:
-            #if self.verbose: self.log("Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
-            #if self.verbose: self.log("Storing " + str(size) + " bytes.")  # Content: " + str(data))
+            #if self.verbose: self.log(str(self.state.ip) + " Storing at " + str(addr) + " " + str(size) + " bytes. Content: " + str(data))
+            if self.verbose: self.log("Storing " + str(size) + " bytes.")  # Content: " + str(data))
             pass
 
         if priv is not None: self.state.scratch.push_priv(priv)
@@ -713,8 +716,6 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         assert add_constraints is None
         condition = self._raw_ast(condition)
         condition = self.state._adjust_condition(condition)
-
-        global n_ite
 
         try:
 
@@ -1054,6 +1055,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
                            angr_memory=self.angr_memory.copy() if self.angr_memory is not None else None)
 
         s._concrete_memory = self._concrete_memory.copy(s)
+
         return s
 
     @property
@@ -1133,10 +1135,6 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
     @profile
     def map_region(self, addr, length, permissions, internal=False):
 
-        if not internal:
-            # self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='map_region_pre')
-            pass
-
         if self.angr_memory is not None and not internal:
             self.angr_memory.map_region(addr, length, permissions)
 
@@ -1165,10 +1163,6 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
         # sort mapped regions 
         self._mapped_regions = sorted(self._mapped_regions, key=lambda x: x.addr)
 
-        if not internal:
-            # self._compare_with_angr([134561792, 134565888, 134569984, 134574080, 134578176, 134582272, 134586368, 134590464, 134594560, 134598656, 134602752, 134672384], op='map_region_post')
-            pass
-
     @profile
     def unmap_region(self, addr, length):
 
@@ -1195,8 +1189,6 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
     @profile
     def permissions(self, addr):
 
-        # self._compare_with_angr([3131747970], op='perm_pre')
-
         res_angr = None
         if self.angr_memory is not None:
             try:
@@ -1216,7 +1208,6 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
             if addr >= region.addr and addr <= region.addr + region.length:
                 assert res_angr is None or self.state.se.eval_upto(res_angr, 10) == self.state.se.eval_upto(
                     region.permissions, 10)
-                # self._compare_with_angr([3131747970], op='perm_post')
                 return region.permissions
 
         # Unmapped region: angr treats it as RW region
@@ -1518,7 +1509,7 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
 
         try:
 
-            if self.angr_memory is None or self.state is None or count_ops < 500:
+            if self.angr_memory is None or self.state is None:
                 return
 
             # get in-use addresses in angr
@@ -1711,3 +1702,38 @@ class SymbolicMemory(angr.state_plugins.plugin.SimStatePlugin):
             #l.debug("running ite_cases %s, %s", cases, default)
             r = self.state.se.ite_cases(cases, default)
             return r, constraints, match_indices
+
+    def __contains__(self, addr):
+
+        if isinstance(addr, (int, long)):
+            addr = addr
+        elif self.state.se.symbolic(addr):
+            log.warning("Currently unable to do SimMemory.__contains__ on symbolic variables.")
+            return False
+        else:
+            addr = self.state.se.eval(addr)
+
+        # concrete address
+        if type(addr) in (int, long):
+            min_addr = addr
+            max_addr = addr
+
+        # symbolic addr
+        else:
+            min_addr = self.state.se.min_int(addr)
+            max_addr = self.state.se.max_int(addr)
+            if min_addr == max_addr:
+                addr = min_addr
+
+        # check permissions
+        self.check_sigsegv_and_refine(addr, min_addr, max_addr, False)
+
+        # check if binary data should be loaded into address space
+        self._load_init_data(min_addr, (max_addr - min_addr) + 1)
+
+        P = self._concrete_memory.find(min_addr, max_addr, True)
+
+        P += [x.data for x in self._symbolic_memory.search(min_addr, max_addr + 1)]
+        P = sorted(P, key=lambda x: (x.t, (x.addr if type(x.addr) in (int, long) else 0)))
+
+        return len(P) > 0
