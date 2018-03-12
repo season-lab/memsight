@@ -27,7 +27,7 @@ cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
 cd angr; git init; git add . >/dev/null; git commit -a -m "initial import" >/dev/null; cd ..
 cd claripy; git init; git add . >/dev/null; git commit -a -m "initial import" >/dev/null; cd ..
 
-for p in $DIR/*.patch; do
+for p in $DIR/0*.patch; do
     patch -p1 < $p
 done
 

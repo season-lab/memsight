@@ -39,7 +39,7 @@ pip install -I --no-use-wheel capstone==3.0.4 # fix error import
 # patches
 echo "Applying patches"
 cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
-for p in $DIR/*.patch; do
+for p in $DIR/0*.patch; do
     patch -p1 < $p
 done
 
