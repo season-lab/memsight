@@ -4,13 +4,13 @@ Date: Mon, 12 Mar 2018 17:21:34 +0100
 Subject: [PATCH] iterative expression translation
 
 ---
- backends/__init__.py | 97 +++++++++++++++++++++++++++++++++++++++++++++++++++-
+ claripy/backends/__init__.py | 97 +++++++++++++++++++++++++++++++++++++++++++++++++++-
  1 file changed, 96 insertions(+), 1 deletion(-)
 
-diff --git a/backends/__init__.py b/backends/__init__.py
+diff --git a/claripy/backends/__init__.py b/backends/__init__.py
 index 254ec4a..ba2adfd 100644
---- a/backends/__init__.py
-+++ b/backends/__init__.py
+--- a/claripy/backends/__init__.py
++++ b/claripy/backends/__init__.py
 @@ -7,6 +7,8 @@ from ..transition import raise_from
  import logging
  l = logging.getLogger('claripy.backend')
