@@ -4,6 +4,7 @@ dist: trusty
 branches:
   only:
   - master
+  - memset_memcpy
 
 notifications:
   email: false
