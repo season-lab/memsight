@@ -2,9 +2,9 @@ sudo: required
 dist: xenial
 
 branches:
-  only:
-  - master
-  - memset_memcpy
+  except:
+  - test
+  - pitree2
 
 notifications:
   email: false
