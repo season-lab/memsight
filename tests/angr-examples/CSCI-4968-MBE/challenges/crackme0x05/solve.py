@@ -46,11 +46,15 @@ def main():
 def test():
 	# it SHOULD just be two numbers but the way angr models scanf means that it could technically be any number of formats
 	# so we gotta check against ground truth
-	with open(os.path.dirname(os.path.realpath(__file__)) + '/input', 'wb') as fp:
-		fp.write(main())
-	os.system("chmod +x " + os.path.dirname(os.path.realpath(__file__)) + '/crackme0x05')
-	out = subprocess.check_output(os.path.dirname(os.path.realpath(__file__)) + '/crackme0x05 < ' + os.path.dirname(os.path.realpath(__file__)) + '/input', shell=True)
-	assert "Password: Password OK!" in out
+	expected = [55, 57, 50, 50, 50, 50, 50, 50, 138, 0, 21, 49, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,]
+	res = main()
+	for k in range(len(expected)):
+		assert ord(res[k]) == expected[k]
+	#with open(os.path.dirname(os.path.realpath(__file__)) + '/input', 'wb') as fp:
+	#	fp.write(main())
+	#os.system("chmod +x " + os.path.dirname(os.path.realpath(__file__)) + '/crackme0x05')
+	#out = subprocess.check_output(os.path.dirname(os.path.realpath(__file__)) + '/crackme0x05 < ' + os.path.dirname(os.path.realpath(__file__)) + '/input', shell=True)
+	#assert "Password: Password OK!" in out
 
 if __name__ == '__main__':
 	start_time = time.time()
