@@ -14,7 +14,7 @@ export WORKON_HOME=$HOME/.virtualenvs
 source /usr/local/bin/virtualenvwrapper.sh
 
 rmvirtualenv $VIRTUALENV_NAME || true
-mkvirtualenv $VIRTUALENV_NAME || exit 1
+mkvirtualenv $VIRTUALENV_NAME || true
 
 # angr stuff
 echo "Installing angr..."
