@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-VIRTUALENV_NAME="memsight"
+VIRTUALENV_NAME="memsight-new"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 pip install virtualenvwrapper virtualenv
@@ -15,7 +15,8 @@ mkvirtualenv $VIRTUALENV_NAME || exit 1
 
 # angr stuff
 echo "Installing angr..."
-pip install -r $DIR/../requirements.txt
+pip install --no-deps -r $DIR/../requirements.txt
+pip install angr==7.7.12.16
 #pip install -I --no-use-wheel capstone==3.0.4 # fix error import
 #pip install --force-reinstall angr claripy
 
