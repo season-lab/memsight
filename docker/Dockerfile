@@ -11,9 +11,8 @@ RUN useradd -m ubuntu && \
 USER ubuntu
 WORKDIR /home/ubuntu
 
-COPY fully-symbolic-memory/build/install.sh /home/ubuntu
-COPY fully-symbolic-memory /home/ubuntu/memsight
+COPY fully_symbolic_memory /home/ubuntu/memsight
 #COPY CGC /home/ubuntu/CGC
 
 USER ubuntu
-RUN ./install.sh
+RUN cd memsight && ./build/install.sh

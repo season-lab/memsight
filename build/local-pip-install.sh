@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-VIRTUALENV_NAME="memsight-new"
+VIRTUALENV_NAME="memsight"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 pip install virtualenvwrapper virtualenv
@@ -9,7 +9,10 @@ pip install virtualenvwrapper virtualenv
 echo "Creating virtualenv"
 
 export WORKON_HOME=$HOME/.virtualenvs
-source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
+
+#source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
+source /usr/local/bin/virtualenvwrapper.sh
+
 rmvirtualenv $VIRTUALENV_NAME || true
 mkvirtualenv $VIRTUALENV_NAME || exit 1
 
@@ -23,6 +26,9 @@ pip install angr==7.7.12.16
 # patches
 echo "Applying patches"
 cd ~/.virtualenvs/$VIRTUALENV_NAME/lib/python2.7/site-packages/
+
+git config --global user.email "test@test.com"
+git config --global user.name "Tizio Caio"
 
 # track angr changes
 cd angr; git init; git add . >/dev/null; git commit -a -m "initial import" >/dev/null; cd ..

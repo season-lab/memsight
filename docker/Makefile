@@ -1,6 +1,6 @@
-VERSION=0.1
+VERSION=0.2
 SHARE=share
-NAME=angr-fsm
+NAME=memsight
 
 all:	build-share run
 	
@@ -16,4 +16,4 @@ clean:
 
 build:
 	#-sudo docker rmi ${NAME}-${VERSION}
-	sudo docker build -t ${NAME}-${VERSION} -f Dockerfile ../../
+	sudo docker build -t ${NAME}-${VERSION} -f Dockerfile ../..
