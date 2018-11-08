@@ -10,8 +10,8 @@ echo "Creating virtualenv"
 
 export WORKON_HOME=$HOME/.virtualenvs
 
-#source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
-source /usr/local/bin/virtualenvwrapper.sh
+source /usr/share/virtualenvwrapper/virtualenvwrapper.sh || echo
+source /usr/local/bin/virtualenvwrapper.sh || echo
 
 rmvirtualenv $VIRTUALENV_NAME || true
 mkvirtualenv $VIRTUALENV_NAME || true
