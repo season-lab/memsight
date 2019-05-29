@@ -1,33 +1,38 @@
-import simuvex
+import angr
+import sys
+
+import claripy
 
 
 def get_permission_backer(proj):
-    permission_map = { }
+    permission_map = {}
     for obj in proj.loader.all_objects:
         for seg in obj.segments:
             perms = 0
             # bit values based off of protection bit values from sys/mman.h
             if seg.is_readable:
-                perms |= 1 # PROT_READ
+                perms |= 1  # PROT_READ
             if seg.is_writable:
-                perms |= 2 # PROT_WRITE
+                perms |= 2  # PROT_WRITE
             if seg.is_executable:
-                perms |= 4 # PROT_EXEC
-            permission_map[(obj.rebase_addr + seg.min_addr, obj.rebase_addr + seg.max_addr)] = perms
-    
-    return (proj.loader.main_bin.execstack, permission_map)
+                perms |= 4  # PROT_EXEC
+            permission_map[(seg.min_addr, seg.max_addr)] = perms
+
+    return (proj.loader.main_object.execstack, permission_map)
 
 
 def parse_args(argv):
     if len(argv) < 2 or len(argv) > 3:
-        print "python " + sys.argv[0] + " [0|1] binary" 
+        print "python " + sys.argv[0] + " [0|1] <binary>"
+        print "0: angr default memory"
+        print "1: memsight memory"
         sys.exit(1)
 
-    t = 0
+    t = 1
     file = argv[1]
     if len(argv) == 3:
         t = int(argv[1])
-        assert t == 0 or t == 1 or t == 2 or t == 3
+        assert t == 0 or t == 1
         file = argv[2]
 
     return t, file
@@ -36,7 +41,7 @@ def parse_args(argv):
 def get_unconstrained_bytes(state, name, bits, source=None, memory=None):
 
     if (memory is not None and memory.category == 'mem' and
-                simuvex.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY in state.options):
+                angr.options.CGC_ZERO_FILL_UNCONSTRAINED_MEMORY in state.options):
         # CGC binaries zero-fill the memory for any allocated region
         # Reference: (https://github.com/CyberGrandChallenge/libcgc/blob/master/allocate.md)
         #if memory.verbose: memory.log("\treturning zero-valued unconconstrained bytes")
@@ -45,6 +50,18 @@ def get_unconstrained_bytes(state, name, bits, source=None, memory=None):
     #if memory.verbose: memory.log("\treturning fully unconconstrained bytes")
     return state.se.Unconstrained(name, bits)
 
+def get_obj_byte(obj, offset):
+
+    # BVV slicing is extremely slow...
+    if obj.op == 'BVV':
+        assert type(obj.args[0]) in (long,int)
+        value = obj.args[0]
+        return claripy.BVV(value >> 8 * (len(obj) / 8 - 1 - offset) & 0xFF, 8)
+
+    # slice the object using angr
+    left = len(obj) - (offset * 8) - 1
+    right = left - 8 + 1
+    return obj[left:right]
 
 def get_obj_bytes(obj, offset, size):
 
@@ -54,7 +71,7 @@ def get_obj_bytes(obj, offset, size):
 
     size = min(size, (len(obj) / 8) - offset)
 
-    # slice the object
+    # slice the object... very slow :/
     left = len(obj) - (offset * 8) - 1
     right = left - (size * 8) + 1
     return obj[left:right], size, size
@@ -91,7 +108,7 @@ def resolve_location_name(memory, name):
     elif name[0] == '*':
         return memory.state.registers.load(name[1:]), None
     else:
-        raise simuvex.s_errors.SimMemoryError("Trying to address memory with a register name.")
+        raise angr.errors.SimMemoryError("Trying to address memory with a register name.")
 
 def reverse_addr_reg(memory, addr):
 

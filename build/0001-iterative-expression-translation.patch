@@ -1,0 +1,148 @@
+From d503558b8a6931b47cd6e0dd45ca6d272f8b0f77 Mon Sep 17 00:00:00 2001
+From: Emilio Coppa <ercoppa@gmail.com>
+Date: Mon, 12 Mar 2018 17:21:34 +0100
+Subject: [PATCH] iterative expression translation
+
+---
+ claripy/backends/__init__.py | 97 +++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 96 insertions(+), 1 deletion(-)
+
+diff --git a/claripy/backends/__init__.py b/backends/__init__.py
+index 254ec4a..ba2adfd 100644
+--- a/claripy/backends/__init__.py
++++ b/claripy/backends/__init__.py
+@@ -7,6 +7,8 @@ from ..transition import raise_from
+ import logging
+ l = logging.getLogger('claripy.backend')
+ 
++CONVERT_TIME = 0
++
+ class Backend(object):
+     """
+     Backends are Claripy's workhorses. Claripy exposes ASTs (claripy.ast.Base objects)
+@@ -48,7 +50,6 @@ class Backend(object):
+     _convert() to see if the backend can handle that type of object.
+     """
+ 
+-
+     def __init__(self, solver_required=None):
+         self._op_raw = { }
+         self._op_expr = { }
+@@ -142,6 +143,98 @@ class Backend(object):
+         :param save:    Save the result in the expression's object cache
+         :return:        A backend object.
+         """
++
++        #return self.convert_recursive(expr)
++
++        """
++        import time
++        start_time = time.time()
++        
++        if not hasattr(self, "running"):
++            self.running = True
++        elif not self.running:
++            self.running = True
++        else:
++            assert False
++        """
++
++        result = None
++        pending = [(expr, [], [])]
++        while len(pending) > 0:
++
++            (expr, converted_args, parent_args) = pending[-1]
++
++            if not isinstance(expr, Base):
++
++                try:
++                    result = self._convert(expr)
++                except BackendError as e:
++                    #self.running = False
++                    #global CONVERT_TIME
++                    #CONVERT_TIME += time.time() - start_time
++                    raise e
++
++                parent_args.append(result)
++                pending.pop()
++                continue
++
++            if self._cache_objects:
++                try:
++                    result = self._object_cache[expr._cache_key]
++                    parent_args.append(result)
++                    pending.pop()
++                    continue
++
++                except KeyError: pass
++
++            if expr.op in self._op_expr:
++                result = self._op_expr[expr.op](expr)
++
++            else:
++
++                if len(expr.args) != len(converted_args):
++                    for arg in reversed(expr.args):
++                        pending.append((arg, [], converted_args))
++                    continue
++
++                if expr.op in self._op_raw:
++                    # the raw ops don't get the model, cause, for example, Z3 stuff can't take it
++                    result = self._op_raw[expr.op](*converted_args)
++
++                elif not expr.op.startswith("__"):
++                    l.debug("backend has no operation %s", expr.op)
++                    raise BackendUnsupportedError
++                else:
++                    result = NotImplemented
++
++                    # first, try the operation with the first guy
++                    try:
++                        result = getattr(operator, expr.op)(*converted_args)
++                    except (TypeError, ValueError):
++                        pass
++
++                    if result is NotImplemented:
++                        l.debug("received NotImplemented in %s.call() for operation %s", self, expr.op)
++                        raise BackendUnsupportedError
++
++            # apply the annotations
++            for a in expr.annotations:
++                result = self.apply_annotation(result, a)
++
++            if self._cache_objects:
++                self._object_cache[expr._cache_key] = result
++
++            parent_args.append(result)
++            pending.pop()
++            continue
++
++        #global CONVERT_TIME
++        #CONVERT_TIME += time.time() - start_time
++        #self.running = False
++        return result
++
++    def convert_recursive(self, expr):  # pylint:disable=R0201
++
+         if isinstance(expr, Base):
+             # if it's cached in the backend, use it
+             if self._cache_objects:
+@@ -174,6 +267,7 @@ class Backend(object):
+ 
+             if self._cache_objects:
+                 self._object_cache[expr._cache_key] = r
++
+             return r
+         else:
+             #l.debug('converting non-expr')
+@@ -192,6 +286,7 @@ class Backend(object):
+ 
+         :return:   A backend object representing the result.
+         """
++
+         converted = self.convert_list(args)
+ 
+         if op in self._op_raw:
+-- 
+2.7.4
+

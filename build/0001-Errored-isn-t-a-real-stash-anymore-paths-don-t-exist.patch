@@ -1,0 +1,27 @@
+From 4f22949913259d0b6df19db674f2c371054dfd9e Mon Sep 17 00:00:00 2001
+From: Audrey Dutcher <audrey@rhelmot.io>
+Date: Sun, 17 Dec 2017 18:28:09 -0800
+Subject: [PATCH] Errored isn't a real stash anymore, paths don't exist anymore
+ and thus don't do error handling
+
+---
+ angr/exploration_techniques/oppologist.py  | 9 ++-------
+ angr/exploration_techniques/veritesting.py | 2 +-
+ 2 files changed, 3 insertions(+), 8 deletions(-)
+
+diff --git a/angr/exploration_techniques/veritesting.py b/angr/exploration_techniques/veritesting.py
+index 61d7b52..6f951e0 100644
+--- a/angr/exploration_techniques/veritesting.py
++++ b/angr/exploration_techniques/veritesting.py
+@@ -29,7 +29,7 @@ class Veritesting(ExplorationTechnique):
+                     'unconstrained': simgr.stashes.get('unconstrained', []),
+                     'unsat': simgr.stashes.get('unsat', []),
+                     'pruned': simgr.stashes.get('pruned', []),
+-                    'errored': simgr.stashes.get('errored', []),
++                    #'errored': simgr.stashes.get('errored', []),
+                     }
+ 
+         return None
+-- 
+2.7.4
+

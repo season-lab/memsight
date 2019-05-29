@@ -1,6 +1,9 @@
+angr-code
+claripy-code
 *.pyc
 *.aux
 *.fls
 *.log
 *.synctex.gz
 *.fdb_latexmk
+*.idea

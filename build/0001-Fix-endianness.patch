@@ -1,0 +1,33 @@
+From 27dbaf1f85e3fef920c3ed73e3a647dcf1df45cb Mon Sep 17 00:00:00 2001
+From: Emilio Coppa <ercoppa@gmail.com>
+Date: Thu, 7 Dec 2017 18:13:25 +0100
+Subject: [PATCH] Fix endianness
+
+---
+ angr/state_plugins/symbolic_memory.py | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/angr/state_plugins/symbolic_memory.py b/angr/state_plugins/symbolic_memory.py
+index dd0aa17..782a6b2 100644
+--- a/angr/state_plugins/symbolic_memory.py
++++ b/angr/state_plugins/symbolic_memory.py
+@@ -800,7 +800,15 @@ class SimSymbolicMemory(SimMemory): #pylint:disable=abstract-method
+             conditional_value = original_value
+ 
+             for opt in segment['options']:
+-                data_slice = data[((opt['idx']+segment['size'])*self.state.arch.byte_width)-1:opt['idx']*self.state.arch.byte_width]
++
++                if endness == "Iend_LE" or (endness is None and self.endness == "Iend_LE"):
++                    h = ((opt['idx']+segment['size']) * self.state.arch.byte_width)-1
++                    l = opt['idx']*self.state.arch.byte_width
++                else:
++                    h = len(data) - 1 - (opt['idx']*self.state.arch.byte_width)
++                    l = len(data) - ((opt['idx']+segment['size']) *self.state.arch.byte_width)
++
++                data_slice = data[h:l]
+                 conditional_value = self.state.solver.If(self.state.solver.And(address == segment['start']-opt['idx'], condition), data_slice, conditional_value)
+ 
+             stored_values.append(dict(value=conditional_value, addr=segment['start'], size=segment['size']))
+-- 
+2.7.4
+

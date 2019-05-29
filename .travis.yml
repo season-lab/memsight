@@ -1,0 +1,13 @@
+sudo: required
+dist: xenial
+
+branches:
+  except:
+  - test
+  - pitree2
+
+notifications:
+  email: false
+
+install: ./build/install.sh
+script: ./tests/travis-test.sh

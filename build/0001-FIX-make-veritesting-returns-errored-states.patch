@@ -1,0 +1,43 @@
+From 499775f76741e20e0b4cd49bc51901a39e3abb34 Mon Sep 17 00:00:00 2001
+From: Emilio Coppa <ercoppa@gmail.com>
+Date: Tue, 16 Jan 2018 19:30:58 +0100
+Subject: [PATCH] FIX: make veritesting returns errored states
+
+---
+ angr/exploration_techniques/veritesting.py | 2 +-
+ angr/manager.py                            | 6 ++++++
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/angr/exploration_techniques/veritesting.py b/angr/exploration_techniques/veritesting.py
+index 6f951e0..b40f477 100644
+--- a/angr/exploration_techniques/veritesting.py
++++ b/angr/exploration_techniques/veritesting.py
+@@ -29,7 +29,7 @@ class Veritesting(ExplorationTechnique):
+                     'unconstrained': simgr.stashes.get('unconstrained', []),
+                     'unsat': simgr.stashes.get('unsat', []),
+                     'pruned': simgr.stashes.get('pruned', []),
+-                    #'errored': simgr.stashes.get('errored', []),
++                    'errored': simgr.errored,
+                     }
+ 
+         return None
+diff --git a/angr/manager.py b/angr/manager.py
+index 6dd42f5..5c2806e 100644
+--- a/angr/manager.py
++++ b/angr/manager.py
+@@ -250,6 +250,12 @@ class SimulationManager(ana.Storable):
+                         l.warning('step_state returning a tuple has been deprecated! Please return a dict of stashes instead.')
+                         a, unconst, unsat, p, e = out
+                         out = {'active': a, 'unconstrained': unconst, 'unsat': unsat, 'pruned': p}
++
++                    # errored is not anymore a stash
++                    if 'errored' in out:
++                        self.errored += out['errored']
++                        del out['errored']
++
+                     new_stashes = self._make_stashes_dict(**out)
+                     break
+             else:
+-- 
+2.7.4
+
