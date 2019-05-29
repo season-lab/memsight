@@ -17,7 +17,7 @@ This repository contains an implemenation of `MemSight` based on `angr`. The ide
 
 This code works with `angr` 7.7.12.16. See `build/install.sh`.
 
-Docker [container](https://hub.docker.com/r/ercoppa/angr-fsm-0.1/) contains an [older version](https://github.com/season-lab/memsight/tree/ASE) of `MemSight` that is based on `angr 5.6.x` (ASE paper).
+The docker [container](https://hub.docker.com/r/ercoppa/angr-fsm-0.1/) available on DockerHub contains an [older version](https://github.com/season-lab/memsight/tree/ASE) of `MemSight` that is based on `angr 5.6.x` (ASE paper).
 
 ## How to run
 `run.py` and `explore.py` can be used to run angr on a metabinary.
