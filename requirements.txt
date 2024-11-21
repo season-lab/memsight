@@ -2,7 +2,7 @@ ana==0.3
 bintrees==2.0.7
 bitstring==3.1.5
 cachetools==2.0.1
-capstone==3.0.5rc2
+capstone==4.0.0
 cffi==1.11.4
 cooldict==1.2
 decorator==4.2.1
